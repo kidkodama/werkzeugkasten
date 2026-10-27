@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Werkzeugkasten">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
+<title>Werkzeugkasten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#0f0e13;
+  --deck:#17161c;
+  --key:#201e27;
+  --key-hi:#2a2733;
+  --key-lo:#1b1922;
+  --line:#332f3d;
+  --line-soft:#282531;
+  --line-strong:#544b66;
+  --fg:#eeecf2;
+  --dim:#9691a3;
+  --dimmer:#6b6678;
+  --amber:#f0a13a;
+  --green:#5fd38d;
+  --violet:#a78bfa;
+  --blue:#7aa2f7;
+  --red:#e0574f;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --cond:"Barlow Condensed","Helvetica Neue Condensed",Impact,var(--sans);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);
+  font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+::selection{background:#7a4f14;color:#fff}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:6px}
+
+.wrap{max-width:1160px;margin:0 auto;padding:22px 22px 60px}
+
+/* ---------- Kopf ---------- */
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.mark{display:flex;align-items:center;gap:9px}
+.mark .led{width:8px;height:8px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 10px 1px rgba(240,161,58,.55)}
+.mark h1{margin:0;font:700 24px/1 var(--cond);letter-spacing:.09em;text-transform:uppercase}
+.grow{flex:1 1 60px}
+.search{position:relative;flex:0 1 230px;min-width:140px}
+.search input{width:100%;background:var(--deck);border:1px solid var(--line);
+  border-radius:8px;padding:7px 10px 7px 29px;font-size:13.5px}
+.search input::placeholder{color:var(--dimmer)}
+.search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.5}
+.btn{background:var(--deck);border:1px solid var(--line);border-radius:8px;
+  padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;
+  transition:border-color .12s,background .12s,color .12s}
+.btn:hover{border-color:var(--line-strong);background:var(--key)}
+.btn.on{background:var(--amber);border-color:var(--amber);color:#1a1206;font-weight:600}
+
+/* ---------- Pfadleiste ---------- */
+.crumbs{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:12px;
+  font:600 12px/1.4 var(--cond);letter-spacing:.13em;text-transform:uppercase}
+.crumbs button{background:none;border:0;padding:2px 0;cursor:pointer;color:var(--dim);
+  font:inherit;letter-spacing:inherit;text-transform:inherit}
+.crumbs button:hover{color:var(--fg)}
+.crumbs .sep{color:var(--dimmer)}
+.crumbs .here{color:var(--fg)}
+.crumbs .n{font:500 10px/1 var(--mono);color:var(--dimmer);letter-spacing:0;margin-left:5px}
+
+/* ---------- Deck ---------- */
+.deck{background:var(--deck);border:1px solid var(--line-soft);border-radius:14px;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:10px}
+
+.key{
+  position:relative;aspect-ratio:1/1;
+  background:linear-gradient(180deg,var(--key-hi) 0%,var(--key) 34%,var(--key-lo) 100%);
+  border:1px solid var(--line);border-radius:13px;
+  padding:12px 11px 11px;cursor:pointer;text-align:left;
+  display:flex;flex-direction:column;gap:8px;
+  color:var(--fg);text-decoration:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.045), 0 1px 2px rgba(0,0,0,.4);
+  transition:transform .09s ease,border-color .12s,box-shadow .12s;
+}
+.key:hover{border-color:var(--line-strong);box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 3px 10px rgba(0,0,0,.45)}
+.key:active{transform:translateY(1px) scale(.985)}
+.key.dragging{opacity:.35}
+.key.dragover{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.key.off{opacity:.4}
+
+.key .ico{color:var(--tint,var(--amber));flex:none}
+.key .ico svg{display:block;width:27px;height:27px}
+.key .lbl{font-size:14px;font-weight:600;line-height:1.25;margin-top:auto;text-wrap:balance}
+.key .sub{font:500 10px/1.35 var(--cond);letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer)}
+.key .num{position:absolute;top:10px;right:11px;font:500 10.5px/1 var(--mono);color:var(--dimmer)}
+.key .state{position:absolute;top:13px;right:11px;width:6px;height:6px;border-radius:50%;
+  background:var(--tint,var(--amber));opacity:.8;display:none}
+.key[data-nokey="1"] .state{display:block}
+
+/* Ordner: gestapelte Karte hinter der Kachel */
+.key.folder{background:linear-gradient(180deg,var(--key-hi) 0%,var(--key) 40%,var(--key-lo) 100%)}
+.key.folder{border-color:var(--line)}
+.key.folder::before{
+  content:"";position:absolute;left:9px;right:9px;top:-5px;height:9px;
+  background:var(--key-lo);border:1px solid var(--line);border-bottom:0;
+  border-radius:9px 9px 0 0;z-index:-1;
+}
+.key.folder .count{position:absolute;top:10px;right:11px;
+  font:500 10.5px/1 var(--mono);color:var(--dimmer)}
+
+.key.up{background:transparent;border-style:dashed;align-items:center;justify-content:center}
+.key.up .ico{color:var(--dim)}
+.key.up .lbl{margin:0;text-align:center;color:var(--dim);font-weight:500}
+
+.key .chips{position:absolute;bottom:9px;right:9px;display:flex;gap:5px}
+.key .chip{opacity:.5;background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  font:500 10px/1 var(--mono);color:var(--dim);padding:4px 6px;cursor:pointer;
+  transition:opacity .12s,border-color .12s,color .12s}
+.key:hover .chip{opacity:1}
+.key .chip:hover{border-color:var(--amber);color:var(--amber)}
+.key .chip.doc{padding:4px 7px;font-weight:600;text-decoration:none}
+.key.has-copy .sub{padding-right:58px}
+.key.has-copy.has-doc .sub{padding-right:88px}
+.key.has-doc:not(.has-copy) .sub{padding-right:30px}
+
+.key .tools{position:absolute;top:8px;right:8px;display:none;gap:5px}
+body.editing .key .tools{display:flex}
+body.editing .key .num,body.editing .key .state,
+body.editing .key .count,body.editing .key .chips{display:none}
+.iconbtn{background:var(--bg);border:1px solid var(--line);border-radius:6px;
+  width:21px;height:21px;display:grid;place-items:center;cursor:pointer;
+  font-size:11px;line-height:1;color:var(--dim);padding:0}
+.iconbtn:hover{border-color:var(--amber);color:var(--amber)}
+.iconbtn.danger{border-color:var(--red);color:var(--red)}
+
+.key.add{background:transparent;border:1px dashed var(--line);
+  align-items:center;justify-content:center;color:var(--dim);box-shadow:none}
+.key.add .lbl{margin:0;font-size:13px;text-align:center;font-weight:500}
+.key.add .ico{color:var(--dim)}
+
+.hintline{margin-top:12px;font-size:12.5px;color:var(--dim);min-height:18px}
+.hintline b{color:var(--amber);font-weight:600}
+.empty{color:var(--dimmer);font-size:14px;padding:26px 4px}
+
+.foot{display:flex;gap:15px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--dimmer)}
+kbd{font:500 11px/1 var(--mono);border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:2px 5px;background:var(--key);color:var(--dim)}
+.warnbar{background:rgba(224,87,79,.1);border:1px solid #6b2b27;border-radius:9px;
+  padding:9px 12px;font-size:13px;margin-bottom:14px;color:#f0b6b2}
+
+dialog{background:var(--deck);color:var(--fg);border:1px solid var(--line);border-radius:13px;
+  padding:20px 22px;max-width:470px;width:calc(100% - 40px)}
+dialog::backdrop{background:rgba(6,5,9,.74)}
+dialog h3{margin:0 0 14px;font:700 19px/1 var(--cond);letter-spacing:.07em;text-transform:uppercase}
+dialog label{display:block;margin-bottom:11px;font-size:12.5px;color:var(--dim)}
+dialog input,dialog select,dialog textarea{width:100%;margin-top:5px;background:var(--bg);
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px}
+dialog textarea{resize:vertical;min-height:70px;font:400 12px/1.5 var(--mono)}
+.dlgacts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+
+/* ---------- Personalisierung ---------- */
+body[data-size="klein"] .grid{grid-template-columns:repeat(auto-fill,minmax(116px,1fr))}
+body[data-size="gross"] .grid{grid-template-columns:repeat(auto-fill,minmax(184px,1fr))}
+body[data-size="klein"] .key .ico svg{width:22px;height:22px}
+body[data-size="gross"] .key .ico svg{width:33px;height:33px}
+body[data-size="klein"] .key .lbl{font-size:12.5px}
+body[data-size="gross"] .key .lbl{font-size:15.5px}
+body.nosub .key .sub{display:none}
+#title[contenteditable]{outline:1px dashed var(--line);outline-offset:5px;border-radius:4px}
+#title[contenteditable]:focus{outline:1px solid var(--amber)}
+
+.swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;align-items:center}
+.sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(128,128,128,.35);
+  cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:2px}
+dialog input[type=color]{height:34px;padding:3px;cursor:pointer;width:64px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row2 label{margin-bottom:0}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){
+  .wrap{padding:16px 14px 50px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+  .key{border-radius:11px;padding:10px}
+}
+</style>
+<script>
+/* Ablage — speichert automatisch: sofort auf diesem Gerät (localStorage)
+ * und zusätzlich in claude.ai (db), damit die Daten ein Löschen des
+ * Browser-Speichers überleben und auf jedem Gerät gleich sind.
+ * Ohne claude.ai (z. B. Seite direkt geöffnet) bleibt es beim Gerät. */
+var Ablage = (function(){
+  var dbP = (window.claude && typeof window.claude.use === "function")
+    ? window.claude.use("db").catch(function(){ return null; })
+    : Promise.resolve(null);
+  function uhr(){ return new Date().toLocaleTimeString("de-AT",{hour:"2-digit",minute:"2-digit"}); }
+  var letzte = null;
+  function zeige(){
+    var el = document.getElementById("ablage-status");
+    if(el && letzte){ el.textContent = letzte[0]; el.setAttribute("data-gut", letzte[1] ? "1" : "0"); }
+  }
+  // die Statuszeile steht am Seitenende – existiert sie noch nicht, nach dem Laden nachtragen
+  document.addEventListener("DOMContentLoaded", zeige);
+  function melde(text, gut){ letzte = [text, gut]; zeige(); }
+  function lokalLesen(k){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+  function lokalSchreiben(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+  return function(schluessel, lokalerSchluessel){
+    var lk = lokalerSchluessel || ("ablage." + schluessel);
+    var docRef = null, laeuft = false, wartend, hatWartend = false, zuletzt = null;
+    function ref(db){ if(!docRef) docRef = db.doc("zustand/" + schluessel); return docRef; }
+    function schreibeDb(){
+      if(laeuft || !hatWartend) return;
+      var v = wartend; hatWartend = false; laeuft = true;
+      dbP.then(function(db){
+        if(!db){ melde("Gespeichert nur auf diesem Gerät", false); return; }
+        return ref(db).set({ wert: JSON.stringify(v), geaendert: new Date().toISOString() })
+          .then(function(){ melde("Gesichert in claude.ai · " + uhr(), true); });
+      }).catch(function(e){
+        melde("Nur auf diesem Gerät gesichert (claude.ai: " + ((e && e.code) || "Fehler") + ")", false);
+      }).then(function(){ laeuft = false; schreibeDb(); });
+    }
+    return {
+      lokal: function(){ return lokalLesen(lk); },
+      /* liefert den Stand aus claude.ai oder null */
+      laden: function(){
+        return dbP.then(function(db){
+          if(!db){ melde("Gespeichert nur auf diesem Gerät", false); return null; }
+          return ref(db).get().then(function(s){
+            melde("Verbunden mit claude.ai", true);
+            if(!s.exists) return null;
+            try{ return JSON.parse(s.data().wert); }catch(e){ return null; }
+          });
+        }).catch(function(e){
+          melde("claude.ai nicht erreichbar (" + ((e && e.code) || "Fehler") + ") – gespeichert auf diesem Gerät", false);
+          return null;
+        });
+      },
+      sichern: function(v){
+        var j = JSON.stringify(v);
+        if(j === zuletzt) return;
+        zuletzt = j;
+        lokalSchreiben(lk, v);
+        wartend = v; hatWartend = true;
+        schreibeDb();
+      }
+    };
+  };
+})();
+</script>
+<div class="wrap">
+
+  <div class="bar">
+    <div class="mark"><span class="led" aria-hidden="true"></span><h1 id="title">Werkzeugkasten</h1></div>
+    <div class="grow"></div>
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <input id="q" type="search" placeholder="Suchen  /" aria-label="Werkzeuge durchsuchen">
+    </div>
+    <button class="btn" id="lookBtn">Aussehen</button>
+    <button class="btn" id="editBtn" aria-pressed="false">Bearbeiten</button>
+    <button class="btn" id="moreBtn" title="Sichern, Laden, Zurücksetzen">⋯</button>
+  </div>
+
+  <div class="warnbar" id="setupwarn" hidden>
+    <b>Dieser Mac ist noch nicht eingerichtet.</b> Im Ordner <code>Werkzeugkasten</code>
+    einmal <b>EINRICHTEN.command</b> doppelklicken — dann weiß die Seite, wo auf diesem
+    Rechner die Werkzeuge liegen, die nicht in iCloud mitwandern. Bis dahin führen
+    deren Kacheln ins Leere; alles Übrige funktioniert.
+  </div>
+
+  <div class="warnbar" id="placewarn" hidden>
+    <b>Falsche Kopie.</b> Diese Datei liegt nicht im Ordner <code>Werkzeugkasten/Dashboard/</code>,
+    deshalb zeigen alle Kacheln ins Leere („ERR_FILE_NOT_FOUND“).
+    Schließ dieses Fenster und starte den Werkzeugkasten über <b>Werkzeugkasten.app</b>
+    im Claude-Ordner. Diese Kopie hier kannst du löschen.
+  </div>
+
+  <div class="warnbar" id="storagewarn" hidden>
+    Dieser Browser speichert bei lokalen Dateien nichts — Änderungen gehen beim Schließen verloren.
+    Sichern über <b>⋯</b>.
+  </div>
+
+  <nav class="crumbs" id="crumbs" aria-label="Ordnerpfad"></nav>
+
+  <div class="deck"><div class="grid" id="grid"></div></div>
+
+  <div class="hintline" id="hint"></div>
+
+  <div class="foot">
+    <span><kbd>/</kbd> suchen</span>
+    <span><kbd>1</kbd>–<kbd>9</kbd> starten</span>
+    <span><kbd>⌫</kbd> Ordner zurück</span>
+    <span><kbd>E</kbd> bearbeiten</span>
+    <span id="savedAt"></span>
+  </div>
+</div>
+
+<dialog id="toolDlg">
+  <h3 id="toolDlgTitle">Kachel hinzufügen</h3>
+  <form method="dialog" id="toolForm">
+    <label>Name<input name="name" required></label>
+    <label>Ziel — Datei-Pfad oder Web-Adresse<input name="href" placeholder="../Werkzeuge/… oder http://127.0.0.1:8744/"></label>
+    <label>Pfad zum Kopieren — optional, z. B. das start.command<input name="path" placeholder="/Users/…/START.command"></label>
+    <label>Terminal-Befehl — optional, wird sonst aus dem Pfad abgeleitet<input name="cmd" placeholder='bash "/Users/…/START.command"'></label>
+    <label>Art
+      <select name="kind">
+        <option value="lokal">Lokal — öffnet sofort</option>
+        <option value="server">Server — vorher starten</option>
+        <option value="skript">Skript — im Finder doppelklicken</option>
+        <option value="erweiterung">Browser-Erweiterung</option>
+        <option value="web">Web — veröffentlicht</option>
+      </select>
+    </label>
+    <label>Ordner<select name="folder"></select></label>
+    <div class="row2">
+      <label>Farbe
+        <input type="color" name="tint">
+        <span class="swatches" data-for="tint"></span>
+      </label>
+      <label>Symbol<select name="icon"></select></label>
+    </div>
+    <label>Beschriftung — optional, ersetzt „Öffnet sofort“ und Co.<input name="sub"></label>
+    <label>Zweites Ziel — optional, z. B. dieselbe Seite im Web<input name="web" placeholder="https://…"></label>
+    <label>Beschriftung des zweiten Ziels — optional, sonst „Web“<input name="webName" placeholder="Web"></label>
+    <label>Anleitung — optional, Datei-Pfad oder Adresse<input name="doc" placeholder="../Werkzeuge/…/ANLEITUNG.html"></label>
+    <label>Hinweis in der Fußzeile — optional<input name="hint"></label>
+    <div class="dlgacts">
+      <button class="btn" value="cancel" formnovalidate>Abbrechen</button>
+      <button class="btn on" value="ok">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="folderDlg">
+  <h3 id="folderDlgTitle">Ordner anlegen</h3>
+  <form method="dialog" id="folderForm">
+    <label>Name<input name="name" required></label>
+    <div class="row2">
+      <label>Farbe
+        <input type="color" name="tint">
+        <span class="swatches" data-for="tint"></span>
+      </label>
+      <label>Symbol<select name="icon"></select></label>
+    </div>
+    <label>Liegt in<select name="parent"></select></label>
+    <div class="dlgacts">
+      <button class="btn" value="cancel" formnovalidate>Abbrechen</button>
+      <button class="btn on" value="ok">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="lookDlg">
+  <h3>Aussehen</h3>
+  <form method="dialog" id="lookForm">
+    <label>Titel<input name="title" required maxlength="40"></label>
+    <label>Akzentfarbe
+      <input type="color" name="accent">
+      <span class="swatches" data-for="accent"></span>
+    </label>
+    <div class="row2">
+      <label>Grundton
+        <select name="ground">
+          <option value="nacht">Nacht — violettes Anthrazit</option>
+          <option value="tinte">Tinte — dunkelblau</option>
+          <option value="moos">Moos — dunkelgrün</option>
+          <option value="kohle">Kohle — neutrales Schwarz</option>
+          <option value="papier">Papier — hell</option>
+        </select>
+      </label>
+      <label>Kachelgröße
+        <select name="size">
+          <option value="klein">Klein</option>
+          <option value="mittel">Mittel</option>
+          <option value="gross">Groß</option>
+        </select>
+      </label>
+    </div>
+    <label style="display:flex;align-items:center;gap:9px">
+      <input type="checkbox" name="showSub" style="width:auto;margin:0">
+      Beschriftung unter dem Namen anzeigen
+    </label>
+    <div class="dlgacts">
+      <button class="btn" value="cancel" formnovalidate>Abbrechen</button>
+      <button class="btn on" value="ok">Übernehmen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="copyDlg">
+  <h3 id="copyDlgTitle">Befehl kopieren</h3>
+  <p id="copyDlgWhat" style="margin:0 0 12px;font-size:13px;color:var(--dim)"></p>
+  <input id="copyDlgText" spellcheck="false" style="font:400 12.5px/1.5 var(--mono)">
+  <div class="dlgacts">
+    <button class="btn on" id="copyDlgClose">Fertig</button>
+  </div>
+</dialog>
+
+<dialog id="moreDlg">
+  <h3>Einstellungen</h3>
+  <p style="margin:0 0 12px;font-size:13px;color:var(--dim)">
+    Ordner, Anordnung, eigene Kacheln und Löschungen liegen nur in diesem Browser.
+    Zum Sichern den Text kopieren; zum Wiederherstellen hier einfügen und einlesen.
+  </p>
+  <textarea id="cfgBox" spellcheck="false" aria-label="Konfiguration"></textarea>
+  <div class="dlgacts">
+    <button class="btn" id="cfgLoad">Einlesen</button>
+    <button class="btn" id="cfgReset">Alles zurücksetzen</button>
+    <button class="btn on" id="cfgClose">Fertig</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+// Diese Seite weiss, wo sie selbst liegt — daraus ergibt sich alles Uebrige.
+// Dadurch laeuft derselbe Werkzeugkasten auf jedem Mac, unter jedem Benutzernamen.
+const SELF = decodeURIComponent(location.pathname);
+const BASE = SELF.replace(/\/Dashboard\/[^/]*$/, "");          // .../Werkzeugkasten
+const HOME = (SELF.match(/^(\/Users\/[^/]+)\//) || ["", ""])[1];
+// standort.js traegt je Mac nach, wo die Werkzeuge liegen, die nicht mitwandern.
+const ORT  = (window.STANDORTE && (window.STANDORTE[HOME] || window.STANDORTE["*"])) || {};
+const CL   = ORT.claude     || HOME + "/Downloads/Claude";
+const RBT  = ORT.rekordbox  || HOME + "/Documents/rekordbox-tools";
+const AUF  = ORT.aufraeumen || HOME + "/Downloads/_aufraeumen";
+const FUN  = ORT.fundus     || HOME + "/Documents/fundus";
+const SHL  = ORT.shelflife  || HOME + "/Documents/shelflife";
+const datei = p => "file://" + encodeURI(p);                    // Pfad -> anklickbar
+
+const ICONS = {
+  book:'<path d="M12 6.2C10.2 4.6 7.4 4 4 4.4v13.4c3.4-.4 6.2.2 8 1.8 1.8-1.6 4.6-2.2 8-1.8V4.4c-3.4-.4-6.2.2-8 1.8z"/><path d="M12 6.2v13.4"/>',
+  tree:'<path d="M12 21v-9"/><path d="M12 12 6.5 7.5M12 12l5.5-4.5"/><path d="M6.5 7.5V4M17.5 7.5V4"/><path d="M6.5 7.5 3.5 5.5M17.5 7.5l3-2"/>',
+  mic:'<path d="M12 3.2a2.8 2.8 0 0 1 2.8 2.8v5a2.8 2.8 0 0 1-5.6 0V6A2.8 2.8 0 0 1 12 3.2z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/>',
+  sliders:'<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="7.5" cy="17" r="2"/>',
+  text:'<path d="M5 6h14M5 10h14M5 14h9M5 18h5"/>',
+  wave:'<path d="M2 12h2.6l2-6.4L10 18.5l2.4-9 1.8 4.6H22"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.6 2.6 15.4 0 18-2.6-2.6-2.6-15.4 0-18z"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.2l2.8 2.8L16 9.6"/>',
+  phones:'<path d="M4.5 14.5v-2a7.5 7.5 0 0 1 15 0v2"/><path d="M4.5 14h3v6h-2a1 1 0 0 1-1-1z"/><path d="M19.5 14h-3v6h2a1 1 0 0 0 1-1z"/>',
+  puzzle:'<path d="M4 4.8h6.2v1.4a1.9 1.9 0 1 0 3.8 0V4.8H20V10h-1.4a1.9 1.9 0 1 0 0 3.8H20v5.4h-6v-1.4a1.9 1.9 0 1 0-3.8 0v1.4H4z"/>',
+  note:'<path d="M9 18V5.4l10-2V16"/><circle cx="6.6" cy="18" r="2.6"/><circle cx="16.6" cy="16" r="2.6"/>',
+  gauge:'<path d="M3.6 18a8.4 8.4 0 1 1 16.8 0"/><path d="M12 14.4 16.2 9.8"/><circle cx="12" cy="15.6" r="1.5"/>',
+  folder:'<path d="M3.2 7.4a2 2 0 0 1 2-2h3.6l2 2h8a2 2 0 0 1 2 2v7.2a2 2 0 0 1-2 2H5.2a2 2 0 0 1-2-2z"/>',
+  pulse:'<path d="M3 12.5h3.8l2-5.4 3.4 9.6 2-4.2H21"/>',
+  speech:'<path d="M4 5h16v10.4H9.4L4 19.6z"/><path d="M8 9.4h8M8 12.2h5"/>',
+  box:'<path d="M3.4 8 12 4.2 20.6 8v8.4L12 20.2 3.4 16.4z"/><path d="m3.4 8 8.6 3.9L20.6 8"/><path d="M12 11.9v8.3"/>',
+  vinyl:'<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3.4v3M12 17.6v3"/>',
+  archive:'<path d="M3.4 5.2h17.2v4H3.4z"/><path d="M5.2 9.2v9.6h13.6V9.2"/><path d="M10 13h4"/>',
+  boat:'<path d="M4 17.2h16l-2.2 3.6H6.2z"/><path d="M12 3.6v11"/><path d="m6.4 14.6 5.6-9 5.6 9z"/>',
+  wrench:'<path d="M17.6 3.4a4.9 4.9 0 0 0-4.6 6.6l-8.4 8.4 2.6 2.6 8.4-8.4a4.9 4.9 0 1 0 2-9.2z"/>',
+  up:'<path d="M12 19V6"/><path d="m6 12 6-6 6 6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  newfolder:'<path d="M3.2 7.4a2 2 0 0 1 2-2h3.6l2 2h8a2 2 0 0 1 2 2v7.2a2 2 0 0 1-2 2H5.2a2 2 0 0 1-2-2z"/><path d="M12 10.6v5M9.5 13.1h5"/>'
+};
+
+/* ------------------------------------------------------------------ *
+ *  Ordner und Kacheln (Auslieferungszustand)
+ * ------------------------------------------------------------------ */
+const DEFAULT_FOLDERS = [
+  { id:"f1788055703032", name:"Vietnam", icon:"folder", tint:"#e0574f", parent:"" }
+];
+
+/* iPad-Fassung: nur Kacheln, die am iPad laufen (Claude-Artefakte). */
+const DEFAULT_TOOLS = [
+  { id:"vietnamesisch", folder:"f1788055703032", kind:"web", icon:"speech", tint:"#5fd38d",
+    name:"Tiếng Việt für Hanoi",
+    href:"https://claude.ai/artifact/GUtUnn3R3q9b35WKZgbaoo",
+    hint:"10-Wochen-Plan bis zur Abreise, die sechs Töne, 30 Minuten pro Tag." },
+
+  { id:"u1788056377090", folder:"f1788055703032", kind:"web", icon:"wrench", tint:"#9691a3",
+    name:"Naturschutzgebiete Vietnam",
+    href:"https://kidkodama.github.io/schutzgebiete-vietnam/",
+    hint:"191 Schutzgebiete (WDPA), gefährdete Arten je Gebiet (GBIF), Verkehr. Braucht Internet; erster Start dauert etwa 30 Sekunden." }
+];
+
+const GROUNDS = {
+  nacht:  {bg:"#0f0e13",deck:"#17161c",key:"#201e27","key-hi":"#2a2733","key-lo":"#1b1922",
+           line:"#332f3d","line-soft":"#282531","line-strong":"#544b66",
+           fg:"#eeecf2",dim:"#9691a3",dimmer:"#6b6678"},
+  tinte:  {bg:"#0b0f18",deck:"#121826",key:"#1a2233","key-hi":"#232d42","key-lo":"#161d2b",
+           line:"#2c3852","line-soft":"#232d42","line-strong":"#46587d",
+           fg:"#e8ecf5",dim:"#8c99b3",dimmer:"#62708c"},
+  moos:   {bg:"#0b110e",deck:"#121a15",key:"#19231d","key-hi":"#212e27","key-lo":"#151e19",
+           line:"#2a3a31","line-soft":"#212e27","line-strong":"#425b4d",
+           fg:"#e8f0ea",dim:"#8ba398",dimmer:"#627a6f"},
+  kohle:  {bg:"#0a0a0b",deck:"#131315",key:"#1c1c1f","key-hi":"#26262a","key-lo":"#171719",
+           line:"#333338","line-soft":"#26262a","line-strong":"#4c4c54",
+           fg:"#eeeef0",dim:"#96969c",dimmer:"#6b6b72"},
+  papier: {bg:"#eceae4",deck:"#fbfaf7",key:"#ffffff","key-hi":"#ffffff","key-lo":"#f4f1ea",
+           line:"#dbd5ca","line-soft":"#e6e1d7","line-strong":"#b4ac9d",
+           fg:"#1d1b17",dim:"#6b6459",dimmer:"#938c7e"}
+};
+
+const SWATCHES = ["#f0a13a","#e8c34a","#5fd38d","#4fd0c0","#7aa2f7","#a78bfa","#e0574f","#9691a3"];
+
+const ICON_LABEL = {
+  book:"Buch", tree:"Stammbaum",
+  mic:"Mikrofon", sliders:"Regler", text:"Text", wave:"Wellenform", globe:"Globus",
+  check:"Haken", phones:"Kopfhörer", puzzle:"Erweiterung", note:"Note", gauge:"Anzeige",
+  folder:"Ordner", pulse:"Puls", speech:"Sprechblase", box:"Kiste", vinyl:"Schallplatte",
+  archive:"Archiv", boat:"Boot", wrench:"Werkzeug"
+};
+
+const DEFAULT_UI = { title:"Werkzeugkasten", accent:"#f0a13a", ground:"nacht", size:"mittel", showSub:true };
+
+const KIND_LABEL = {
+  lokal:"Öffnet sofort", server:"Server", skript:"Befehl",
+  erweiterung:"Ordner", web:"Web"
+};
+
+/* ------------------------------------------------------------------ *
+ *  Speicherung
+ * ------------------------------------------------------------------ */
+const KEY = "werkzeugkasten.ipad.v2";
+const WK_ABLAGE = Ablage("werkzeugkasten-ipad-v2", KEY);
+let wkGeaendert = false;
+let storageOK = true, store = null, here = "";
+
+function blankStore(){
+  return {
+    order:       DEFAULT_TOOLS.map(t=>t.id),
+    tools:       {},                                  // Änderungen an mitgelieferten Kacheln
+    custom:      [],                                  // eigene Kacheln
+    removed:     [],
+    folderOrder: DEFAULT_FOLDERS.map(f=>f.id),
+    folderMeta:  {},                                  // Änderungen an mitgelieferten Ordnern
+    customFolders: [],
+    removedFolders: [],
+    ui: Object.assign({}, DEFAULT_UI),
+    saved: null
+  };
+}
+function load(){
+  try{
+    const raw = WK_ABLAGE.lokal();
+    store = raw ? Object.assign(blankStore(), raw) : blankStore();
+    store.ui = Object.assign({}, DEFAULT_UI, store.ui || {});
+  }catch(e){ storageOK = false; store = blankStore(); }
+}
+function save(){
+  store.saved = new Date().toISOString();
+  wkGeaendert = true;
+  WK_ABLAGE.sichern(store);
+  paintSaved();
+}
+function paintSaved(){
+  const el = document.getElementById("savedAt");
+  if(!storageOK){ el.textContent = "nicht gespeichert"; return; }
+  el.textContent = store.saved
+    ? "gesichert " + new Date(store.saved).toLocaleTimeString("de-AT",{hour:"2-digit",minute:"2-digit"})
+    : "";
+}
+
+function applyUI(){
+  const u = store.ui || DEFAULT_UI;
+  const g = GROUNDS[u.ground] || GROUNDS.nacht;
+  const r = document.documentElement.style;
+  Object.keys(g).forEach(k=>r.setProperty("--"+k, g[k]));
+  r.setProperty("--amber", u.accent);
+  const t = document.getElementById("title");
+  if(t.textContent !== u.title) t.textContent = u.title;
+  document.title = u.title;
+  document.body.dataset.size = u.size;
+  document.body.classList.toggle("nosub", !u.showSub);
+}
+
+function allFolders(){
+  const byId = {};
+  DEFAULT_FOLDERS.forEach(f=>byId[f.id]={...f});
+  store.customFolders.forEach(f=>byId[f.id]={...f, custom:true});
+  Object.keys(store.folderMeta).forEach(id=>{ if(byId[id]) Object.assign(byId[id], store.folderMeta[id]); });
+  const order = store.folderOrder.filter(id=>byId[id]);
+  Object.keys(byId).forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  store.folderOrder = order;
+  return order.filter(id=>!store.removedFolders.includes(id)).map(id=>byId[id]);
+}
+function folderById(id){ return allFolders().find(f=>f.id===id) || null; }
+
+function allTools(){
+  const byId = {};
+  DEFAULT_TOOLS.forEach(t=>byId[t.id]={...t});
+  store.custom.forEach(t=>byId[t.id]={...t, custom:true});
+  Object.keys(store.tools).forEach(id=>{ if(byId[id]) Object.assign(byId[id], store.tools[id]); });
+  const order = store.order.filter(id=>byId[id]);
+  Object.keys(byId).forEach(id=>{ if(!order.includes(id)) order.push(id); });
+  store.order = order;
+  const live = allFolders().map(f=>f.id);
+  return order.filter(id=>!store.removed.includes(id)).map(id=>{
+    const t = byId[id];
+    // Ordner gelöscht? Kachel rutscht nach oben statt zu verschwinden.
+    if(t.folder && !live.includes(t.folder)) t.folder = "";
+    return t;
+  });
+}
+
+function pathOf(id){
+  const out = [];
+  let cur = id, guard = 0;
+  while(cur && guard++ < 12){
+    const f = folderById(cur);
+    if(!f) break;
+    out.unshift(f);
+    cur = f.parent || "";
+  }
+  return out;
+}
+function countIn(id){
+  const direct = allTools().filter(t=>t.folder===id).length;
+  const subs = allFolders().filter(f=>(f.parent||"")===id);
+  return direct + subs.reduce((n,f)=>n+countIn(f.id),0);
+}
+function isInside(childId, maybeParentId){
+  let cur = childId, guard = 0;
+  while(cur && guard++ < 12){
+    if(cur === maybeParentId) return true;
+    const f = folderById(cur); if(!f) return false;
+    cur = f.parent || "";
+  }
+  return false;
+}
+function esc(s){
+  return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+function editing(){ return document.body.classList.contains("editing"); }
+
+/* Terminal-Befehl einer Kachel: eigener Eintrag, sonst aus dem .command-Pfad abgeleitet */
+function cmdFor(t){
+  if(t.cmd) return t.cmd;
+  if(!t.path) return "";
+  if(t.kind === "erweiterung") return "";              // startet im Browser, nicht im Terminal
+  if(/\.(command|sh)$/i.test(t.path)) return 'bash "' + t.path + '"';
+  return 'open "' + t.path + '"';   // Ordner und Dateien: im Finder bzw. Standardprogramm öffnen
+}
+function setFolderOf(toolId, folderId){
+  const c = store.custom.find(x=>x.id===toolId);
+  if(c) c.folder = folderId; else (store.tools[toolId] = store.tools[toolId]||{}).folder = folderId;
+}
+function setParentOf(folderId, parentId){
+  const c = store.customFolders.find(x=>x.id===folderId);
+  if(c) c.parent = parentId; else (store.folderMeta[folderId] = store.folderMeta[folderId]||{}).parent = parentId;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Pfadleiste
+ * ------------------------------------------------------------------ */
+function renderCrumbs(){
+  const host = document.getElementById("crumbs");
+  host.innerHTML = "";
+  const chain = pathOf(here);
+  const mk = (label, id, isHere, n)=>{
+    const b = document.createElement("button");
+    b.innerHTML = esc(label) + (n!=null ? '<span class="n">'+n+'</span>' : "");
+    if(isHere) b.className = "here";
+    b.onclick = ()=>{ here = id; render(); };
+    host.appendChild(b);
+  };
+  mk(store.ui.title, "", chain.length===0, chain.length===0 ? visibleCount("") : null);
+  chain.forEach((f,i)=>{
+    const s = document.createElement("span"); s.className="sep"; s.textContent="›";
+    host.appendChild(s);
+    mk(f.name, f.id, i===chain.length-1, i===chain.length-1 ? countIn(f.id) : null);
+  });
+}
+function visibleCount(id){
+  return allTools().filter(t=>t.folder===id).length + allFolders().filter(f=>(f.parent||"")===id).length;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Deck
+ * ------------------------------------------------------------------ */
+function renderGrid(){
+  const host = document.getElementById("grid");
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  host.innerHTML = "";
+  let n = 0, shown = 0;
+
+  const svg = k => '<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[k]||ICONS.wrench)+'</svg></span>';
+
+  /* Zurück-Kachel */
+  if(!q && here){
+    const parent = (folderById(here)||{}).parent || "";
+    const up = document.createElement("div");
+    up.className = "key up";
+    up.dataset.drop = "up";
+    up.dataset.parent = parent;
+    up.setAttribute("role","button"); up.tabIndex = 0;
+    up.innerHTML = svg("up") + '<span class="lbl">Zurück</span>';
+    const go = ()=>{ here = parent; render(); };
+    up.onclick = go;
+    up.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } };
+    host.appendChild(up);
+  }
+
+  /* Ordner in dieser Ebene */
+  if(!q){
+    allFolders().filter(f=>(f.parent||"")===here).forEach(f=>{
+      shown++;
+      const el = document.createElement("div");
+      el.className = "key folder";
+      el.dataset.folderId = f.id;
+      el.style.setProperty("--tint", f.tint || "#9691a3");
+      el.setAttribute("role","button"); el.tabIndex = 0;
+      let num = "";
+      if(n < 9 && !editing()){ n++; num = n; el.dataset.key = n; }
+      el.innerHTML = svg(f.icon||"folder") +
+        (num ? '<span class="num">'+num+'</span>' : '<span class="count">'+countIn(f.id)+'</span>') +
+        '<span class="lbl">'+esc(f.name)+'</span>' +
+        '<span class="sub">Ordner · '+countIn(f.id)+'</span>' +
+        '<div class="tools">' +
+          '<button class="iconbtn" data-fact="edit" title="Ordner ändern">✎</button>' +
+          '<button class="iconbtn" data-fact="remove" title="Ordner löschen">×</button>' +
+        '</div>';
+      const open = ()=>{ if(editing()) return; here = f.id; render(); };
+      el.onclick = e=>{ if(e.target.closest(".tools")) return; open(); };
+      el.onkeydown = e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } };
+      el.addEventListener("mouseenter", ()=>hintText(f.name, countIn(f.id)+" Einträge · zum Öffnen klicken"+(editing()?" · Kacheln hierher ziehen":"")));
+      host.appendChild(el);
+    });
+  }
+
+  /* Kacheln */
+  allTools().forEach(t=>{
+    if(t.off && !editing()) return;
+    if(q){
+      const hay = (t.id+" "+t.name+" "+(t.hint||"")+" "+(KIND_LABEL[t.kind]||"")).toLowerCase();
+      if(!hay.includes(q)) return;
+    } else if((t.folder||"") !== here) return;
+    shown++;
+
+    const el = document.createElement(t.href && !editing() ? "a" : "div");
+    el.className = "key" + (t.off ? " off" : "");
+    el.dataset.id = t.id;
+    if(t.tint) el.style.setProperty("--tint", t.tint);
+
+    if(t.href && !editing()){
+      el.href = t.href;
+      if(/^https?:/.test(t.href)){ el.target = "_blank"; el.rel = "noopener"; }
+    } else if(!editing()){
+      el.setAttribute("role","button"); el.tabIndex = 0;
+    }
+
+    let num = "";
+    if(t.href && n < 9 && !editing()){ n++; num = n; el.dataset.key = n; }
+    else if(!t.href) el.dataset.nokey = "1";
+
+    const where = q && t.folder ? (folderById(t.folder)||{}).name : null;
+
+    el.innerHTML = svg(t.icon) +
+      (num ? '<span class="num">'+num+'</span>' : "") +
+      '<span class="state"></span>' +
+      '<span class="lbl">'+esc(t.name)+'</span>' +
+      '<span class="sub">'+esc(where || t.sub || KIND_LABEL[t.kind] || t.kind)+'</span>' +
+      '<div class="tools">' +
+        '<button class="iconbtn" data-act="toggle" title="Ein-/Ausblenden">'+(t.off?"○":"●")+'</button>' +
+        '<button class="iconbtn" data-act="edit" title="Ändern">✎</button>' +
+        '<button class="iconbtn" data-act="remove" title="Löschen">×</button>' +
+      '</div>';
+
+    const cmd = cmdFor(t);
+    let chips = null;
+    if(!editing() && (cmd || t.path || t.doc || t.web)){
+      chips = document.createElement("div");
+      chips.className = "chips";
+      el.appendChild(chips);
+    }
+    if(t.web && !editing()){
+      // zweites Ziel: die Kachel selbst öffnet „Ziel“, dieser Knopf das zweite (z. B. Web statt lokal)
+      const w = document.createElement("a");
+      w.className = "chip doc web";
+      w.textContent = (t.webName || "Web") + " ↗";
+      w.href = t.web;
+      w.title = (t.webName || "Web") + " öffnen: " + t.web;
+      if(/^https?:/.test(t.web)){ w.target = "_blank"; w.rel = "noopener"; }
+      w.addEventListener("click", e=>e.stopPropagation());
+      chips.appendChild(w);
+    }
+    if(t.doc && !editing()){
+      const d = document.createElement("a");
+      d.className = "chip doc";
+      d.textContent = "?";
+      d.href = t.doc;
+      d.title = "Anleitung öffnen";
+      if(/^https?:/.test(t.doc)){ d.target = "_blank"; d.rel = "noopener"; }
+      d.addEventListener("click", e=>e.stopPropagation());
+      chips.appendChild(d);
+      el.classList.add("has-doc");
+    }
+    if((cmd || t.path) && !editing()){
+      const c = document.createElement("button");
+      c.className = "chip copy";
+      c.textContent = cmd ? "Befehl" : (t.kind === "erweiterung" ? "Ordner" : "Pfad");
+      c.title = cmd || t.path;
+      c.addEventListener("click", e=>{ e.preventDefault(); e.stopPropagation(); copyThing(c, cmd, t.path); });
+      chips.appendChild(c);
+      el.classList.add("has-copy");
+    }
+    if(!t.href && (cmd || t.path) && !editing()){
+      const doCopy = ()=>copyThing(el.querySelector(".copy"), cmd, t.path);
+      el.addEventListener("click", e=>{ if(!e.target.closest(".chip")) doCopy(); });
+      el.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); doCopy(); }});
+    }
+    el.addEventListener("mouseenter", ()=>hintText(t.name, t.hint || ""));
+    host.appendChild(el);
+  });
+
+  /* Bearbeiten: neue Kachel, neuer Ordner, Papierkorb */
+  if(editing() && !q){
+    const addKey = document.createElement("button");
+    addKey.className = "key add";
+    addKey.innerHTML = svg("plus") + '<span class="lbl">Kachel</span>';
+    addKey.onclick = ()=>openToolDialog(null);
+    host.appendChild(addKey);
+
+    const addFolder = document.createElement("button");
+    addFolder.className = "key add";
+    addFolder.innerHTML = svg("newfolder") + '<span class="lbl">Ordner</span>';
+    addFolder.onclick = ()=>openFolderDialog(null);
+    host.appendChild(addFolder);
+
+    const gone = store.removed.length + store.removedFolders.length;
+    if(gone){
+      const r = document.createElement("button");
+      r.className = "key add";
+      r.innerHTML = '<span class="lbl">'+gone+' gelöscht<br>zurückholen</span>';
+      r.onclick = ()=>{ store.removed = []; store.removedFolders = []; save(); render(); };
+      host.appendChild(r);
+    }
+  }
+
+  if(!shown && !editing()){
+    host.innerHTML = '<div class="empty">'+(q ? "Nichts gefunden." : "Dieser Ordner ist leer.")+'</div>';
+  }
+  wireEdit();
+}
+
+function hintText(title, rest){
+  document.getElementById("hint").innerHTML = "<b>"+esc(title)+"</b>" + (rest ? " — "+esc(rest) : "");
+}
+document.addEventListener("mouseleave", ()=>{ document.getElementById("hint").textContent = ""; });
+
+/* Kopieren bei lokalen Dateien: der synchrone Weg zuerst, weil Safari und Chrome
+   die Clipboard-API auf file:// oft verweigern und ein Rückfall nach dem
+   Klick-Ereignis nicht mehr als Nutzeraktion zählt. */
+function copyThing(btn, cmd, path){
+  const text = cmd || path;
+
+  const ok = ()=>{
+    document.getElementById("hint").innerHTML = cmd
+      ? "<b>Befehl kopiert</b> — " + esc(cmd) + " · im Terminal einfügen und Enter"
+      : "<b>Pfad kopiert</b> — " + esc(path) + " · im Finder mit Cmd-Shift-G einfügen";
+    if(btn){ const o = btn.textContent; btn.textContent = "kopiert"; setTimeout(()=>btn.textContent = o, 1600); }
+  };
+
+  if(execCopy(text)){ ok(); return; }
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(ok).catch(()=>showCopyBox(text, !!cmd));
+  } else {
+    showCopyBox(text, !!cmd);
+  }
+}
+
+/* Synchron, innerhalb des Klicks — funktioniert auch ohne sicheren Kontext */
+function execCopy(text){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly","");
+  ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0";
+  document.body.appendChild(ta);
+  const sel = document.getSelection();
+  const prev = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+  ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+  let done = false;
+  try{ done = document.execCommand("copy"); }catch(e){ done = false; }
+  ta.remove();
+  if(prev && sel){ sel.removeAllRanges(); sel.addRange(prev); }
+  return done;
+}
+
+/* Wenn der Browser gar nichts kopieren lässt: Text zum Selbstkopieren zeigen */
+function showCopyBox(text, isCmd){
+  const dlg = document.getElementById("copyDlg");
+  document.getElementById("copyDlgTitle").textContent = isCmd ? "Befehl kopieren" : "Pfad kopieren";
+  document.getElementById("copyDlgWhat").textContent = isCmd
+    ? "Dein Browser lässt das Kopieren bei lokalen Dateien nicht zu. Mit Cmd-C übernehmen, dann im Terminal einfügen."
+    : "Dein Browser lässt das Kopieren bei lokalen Dateien nicht zu. Mit Cmd-C übernehmen, dann im Finder mit Cmd-Shift-G einfügen.";
+  const inp = document.getElementById("copyDlgText");
+  inp.value = text;
+  dlg.showModal();
+  inp.focus(); inp.select();
+}
+
+/* ------------------------------------------------------------------ *
+ *  Bearbeiten
+ * ------------------------------------------------------------------ */
+function wireEdit(){
+  const on = editing();
+  document.querySelectorAll(".key:not(.add):not(.up)").forEach(el=>{
+    el.draggable = on;
+    const lbl = el.querySelector(".lbl");
+    if(!lbl) return;
+    if(on){
+      lbl.setAttribute("contenteditable","true");
+      lbl.onblur = ()=>{
+        const val = lbl.textContent.trim() || "Ohne Namen";
+        if(el.dataset.folderId){
+          const id = el.dataset.folderId;
+          const c = store.customFolders.find(x=>x.id===id);
+          if(c) c.name = val; else (store.folderMeta[id] = store.folderMeta[id]||{}).name = val;
+        } else {
+          const id = el.dataset.id;
+          const c = store.custom.find(x=>x.id===id);
+          if(c) c.name = val; else (store.tools[id] = store.tools[id]||{}).name = val;
+        }
+        save(); renderCrumbs();
+      };
+      lbl.onkeydown = e=>{ if(e.key==="Enter"){ e.preventDefault(); lbl.blur(); } };
+    } else lbl.removeAttribute("contenteditable");
+  });
+
+  document.querySelectorAll(".key .tools .iconbtn").forEach(b=>{
+    b.onclick = e=>{
+      e.preventDefault(); e.stopPropagation();
+      const k = b.closest(".key");
+      if(b.dataset.fact){
+        const id = k.dataset.folderId;
+        if(b.dataset.fact === "edit") openFolderDialog(id);
+        else if(b.dataset.fact === "remove"){
+          if(!armDelete(b)) return;
+          deleteFolder(id);
+        }
+        return;
+      }
+      const id = k.dataset.id, act = b.dataset.act;
+      if(act === "toggle"){
+        const c = store.custom.find(x=>x.id===id);
+        const cur = c ? c.off : (store.tools[id]||{}).off;
+        if(c) c.off = !cur; else (store.tools[id] = store.tools[id]||{}).off = !cur;
+        save(); render();
+      } else if(act === "edit"){
+        openToolDialog(id);
+      } else if(act === "remove"){
+        if(!armDelete(b)) return;
+        deleteTool(id);
+      }
+    };
+  });
+}
+
+function armDelete(btn){
+  if(btn.dataset.armed === "1") return true;
+  btn.dataset.armed = "1";
+  btn.classList.add("danger");
+  btn.textContent = "×?";
+  btn.title = "Noch einmal klicken zum Löschen";
+  clearTimeout(btn._t);
+  btn._t = setTimeout(()=>{
+    btn.dataset.armed = "0"; btn.classList.remove("danger");
+    btn.textContent = "×"; btn.title = "Löschen";
+  }, 3000);
+  return false;
+}
+
+function deleteTool(id){
+  const c = store.custom.find(x=>x.id===id);
+  if(c){
+    store.custom = store.custom.filter(x=>x.id!==id);
+    store.order  = store.order.filter(x=>x!==id);
+    delete store.tools[id];
+  } else if(!store.removed.includes(id)) store.removed.push(id);
+  save(); render();
+}
+
+/* Ordner löschen: Inhalt wandert eine Ebene höher, nichts geht verloren */
+function deleteFolder(id){
+  const f = folderById(id); if(!f) return;
+  const up = f.parent || "";
+  allTools().filter(t=>t.folder===id).forEach(t=>setFolderOf(t.id, up));
+  allFolders().filter(x=>(x.parent||"")===id).forEach(x=>setParentOf(x.id, up));
+  const c = store.customFolders.find(x=>x.id===id);
+  if(c){
+    store.customFolders = store.customFolders.filter(x=>x.id!==id);
+    store.folderOrder = store.folderOrder.filter(x=>x!==id);
+    delete store.folderMeta[id];
+  } else if(!store.removedFolders.includes(id)) store.removedFolders.push(id);
+  if(here === id) here = up;
+  save(); render();
+  hintText(f.name+" gelöscht", "Der Inhalt liegt jetzt eine Ebene höher.");
+}
+
+/* ------------------------------------------------------------------ *
+ *  Ziehen: umsortieren und in Ordner legen
+ * ------------------------------------------------------------------ */
+let drag = null;   // {type:"tool"|"folder", id}
+
+document.addEventListener("dragstart", e=>{
+  const k = e.target.closest(".key:not(.add):not(.up)");
+  if(!k || !editing()) return;
+  drag = k.dataset.folderId ? {type:"folder", id:k.dataset.folderId} : {type:"tool", id:k.dataset.id};
+  k.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", drag.id); }catch(err){}
+});
+document.addEventListener("dragend", ()=>{
+  document.querySelectorAll(".key").forEach(x=>x.classList.remove("dragging","dragover"));
+  drag = null;
+});
+document.addEventListener("dragover", e=>{
+  if(!drag) return;
+  const k = e.target.closest(".key:not(.add)");
+  if(!k) return;
+  e.preventDefault();
+  document.querySelectorAll(".key").forEach(x=>x.classList.remove("dragover"));
+  const self = k.dataset.folderId === drag.id || k.dataset.id === drag.id;
+  if(!self) k.classList.add("dragover");
+});
+document.addEventListener("drop", e=>{
+  if(!drag) return;
+  const k = e.target.closest(".key:not(.add)");
+  if(!k) return;
+  e.preventDefault();
+
+  // auf „Zurück" → eine Ebene höher
+  if(k.dataset.drop === "up"){
+    const up = k.dataset.parent || "";
+    if(drag.type === "tool") setFolderOf(drag.id, up);
+    else if(!isInside(up, drag.id)) setParentOf(drag.id, up);
+    save(); render(); return;
+  }
+
+  // auf einen Ordner → hineinlegen
+  if(k.dataset.folderId && k.dataset.folderId !== drag.id){
+    const target = k.dataset.folderId;
+    if(drag.type === "tool"){ setFolderOf(drag.id, target); }
+    else if(!isInside(target, drag.id)){ setParentOf(drag.id, target); }
+    else { hintText("Geht nicht", "Ein Ordner kann nicht in sich selbst liegen."); save(); render(); return; }
+    save(); render();
+    hintText("Verschoben", "nach " + (folderById(target)||{}).name);
+    return;
+  }
+
+  // auf eine Kachel → umsortieren
+  if(drag.type === "tool" && k.dataset.id && k.dataset.id !== drag.id){
+    const order = store.order.slice();
+    order.splice(order.indexOf(drag.id), 1);
+    order.splice(order.indexOf(k.dataset.id), 0, drag.id);
+    store.order = order;
+    save(); render();
+  } else if(drag.type === "folder" && k.dataset.folderId === drag.id){
+    /* nichts */
+  }
+});
+
+/* ------------------------------------------------------------------ *
+ *  Dialoge
+ * ------------------------------------------------------------------ */
+function fillSwatches(host, input){
+  host.innerHTML = "";
+  SWATCHES.forEach(c=>{
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sw"; b.style.background = c;
+    b.title = c;
+    b.setAttribute("aria-pressed", String(input.value.toLowerCase() === c.toLowerCase()));
+    b.onclick = ()=>{
+      input.value = c;
+      host.querySelectorAll(".sw").forEach(x=>x.setAttribute("aria-pressed","false"));
+      b.setAttribute("aria-pressed","true");
+    };
+    host.appendChild(b);
+  });
+}
+function wireSwatches(form){
+  form.querySelectorAll(".swatches").forEach(host=>{
+    const input = form[host.dataset.for];
+    if(input) fillSwatches(host, input);
+  });
+}
+function fillIconSelect(sel, current){
+  sel.innerHTML = "";
+  Object.keys(ICON_LABEL).forEach(k=>{
+    const o = document.createElement("option");
+    o.value = k; o.textContent = ICON_LABEL[k];
+    sel.appendChild(o);
+  });
+  sel.value = current && ICON_LABEL[current] ? current : "wrench";
+}
+
+function fillFolderSelect(sel, exclude, allowRoot){
+  sel.innerHTML = "";
+  const opt = (v,l)=>{ const o=document.createElement("option"); o.value=v; o.textContent=l; sel.appendChild(o); };
+  if(allowRoot !== false) opt("", "Werkzeugkasten (oberste Ebene)");
+  allFolders().forEach(f=>{
+    if(exclude && isInside(f.id, exclude)) return;
+    const depth = pathOf(f.id).length - 1;
+    opt(f.id, "  ".repeat(depth) + (depth ? "› " : "") + f.name);
+  });
+}
+
+const toolDlg = document.getElementById("toolDlg");
+const toolForm = document.getElementById("toolForm");
+let editingId = null;
+
+function openToolDialog(id){
+  editingId = id || null;
+  const t = id ? allTools().find(x=>x.id===id) : null;
+  document.getElementById("toolDlgTitle").textContent = id ? "Kachel ändern" : "Kachel hinzufügen";
+  fillFolderSelect(toolForm.folder, null, true);
+  toolForm.name.value = t ? t.name : "";
+  toolForm.href.value = t ? (t.href||"") : "";
+  toolForm.path.value = t ? (t.path||"") : "";
+  toolForm.cmd.value  = t ? (t.cmd||"") : "";
+  toolForm.kind.value = t ? t.kind : "lokal";
+  toolForm.folder.value = t ? (t.folder||"") : here;
+  toolForm.tint.value = (t && t.tint) ? t.tint : "#9691a3";
+  fillIconSelect(toolForm.icon, t ? t.icon : "wrench");
+  toolForm.sub.value = t ? (t.sub||"") : "";
+  toolForm.doc.value = t ? (t.doc||"") : "";
+  toolForm.web.value = t ? (t.web||"") : "";
+  toolForm.webName.value = t ? (t.webName||"") : "";
+  toolForm.hint.value = t ? (t.hint||"") : "";
+  wireSwatches(toolForm);
+  toolDlg.showModal();
+}
+toolDlg.addEventListener("close", ()=>{
+  if(toolDlg.returnValue !== "ok"){ editingId = null; return; }
+  const data = {
+    name: toolForm.name.value.trim() || "Ohne Namen",
+    href: toolForm.href.value.trim(),
+    path: toolForm.path.value.trim(),
+    cmd:  toolForm.cmd.value.trim(),
+    kind: toolForm.kind.value,
+    folder: toolForm.folder.value,
+    tint: toolForm.tint.value,
+    icon: toolForm.icon.value,
+    sub:  toolForm.sub.value.trim(),
+    doc:  toolForm.doc.value.trim(),
+    web:  toolForm.web.value.trim(),
+    webName: toolForm.webName.value.trim(),
+    hint: toolForm.hint.value.trim()
+  };
+  if(editingId){
+    const c = store.custom.find(x=>x.id===editingId);
+    if(c) Object.assign(c, data);
+    else store.tools[editingId] = Object.assign(store.tools[editingId]||{}, data);
+  } else {
+    const id = "u" + Date.now();
+    store.custom.push(Object.assign({ id, custom:true }, data));
+    store.order.push(id);
+  }
+  editingId = null; save(); render();
+});
+
+const folderDlg = document.getElementById("folderDlg");
+const folderForm = document.getElementById("folderForm");
+let editingFolderId = null;
+
+function openFolderDialog(id){
+  editingFolderId = id || null;
+  const f = id ? folderById(id) : null;
+  document.getElementById("folderDlgTitle").textContent = id ? "Ordner ändern" : "Ordner anlegen";
+  fillFolderSelect(folderForm.parent, id, true);
+  folderForm.name.value = f ? f.name : "";
+  folderForm.tint.value = f ? (f.tint||"#f0a13a") : "#f0a13a";
+  fillIconSelect(folderForm.icon, f ? f.icon : "folder");
+  folderForm.parent.value = f ? (f.parent||"") : here;
+  wireSwatches(folderForm);
+  folderDlg.showModal();
+}
+folderDlg.addEventListener("close", ()=>{
+  if(folderDlg.returnValue !== "ok"){ editingFolderId = null; return; }
+  const data = {
+    name: folderForm.name.value.trim() || "Ordner",
+    tint: folderForm.tint.value,
+    icon: folderForm.icon.value,
+    parent: folderForm.parent.value
+  };
+  if(editingFolderId){
+    if(isInside(data.parent, editingFolderId)) data.parent = (folderById(editingFolderId)||{}).parent || "";
+    const c = store.customFolders.find(x=>x.id===editingFolderId);
+    if(c) Object.assign(c, data);
+    else store.folderMeta[editingFolderId] = Object.assign(store.folderMeta[editingFolderId]||{}, data);
+  } else {
+    const id = "f" + Date.now();
+    store.customFolders.push(Object.assign({ id, custom:true }, data));
+    store.folderOrder.push(id);
+  }
+  editingFolderId = null; save(); render();
+});
+
+const lookDlg = document.getElementById("lookDlg");
+const lookForm = document.getElementById("lookForm");
+document.getElementById("lookBtn").onclick = ()=>{
+  const u = store.ui;
+  lookForm.title.value = u.title;
+  lookForm.accent.value = u.accent;
+  lookForm.ground.value = u.ground;
+  lookForm.size.value = u.size;
+  lookForm.showSub.checked = !!u.showSub;
+  wireSwatches(lookForm);
+  lookDlg.showModal();
+};
+lookDlg.addEventListener("close", ()=>{
+  if(lookDlg.returnValue !== "ok") return;
+  store.ui = {
+    title: lookForm.title.value.trim() || "Werkzeugkasten",
+    accent: lookForm.accent.value,
+    ground: lookForm.ground.value,
+    size: lookForm.size.value,
+    showSub: lookForm.showSub.checked
+  };
+  save(); render();
+});
+
+document.getElementById("copyDlgClose").onclick = e=>{
+  e.preventDefault(); document.getElementById("copyDlg").close();
+};
+
+const moreDlg = document.getElementById("moreDlg");
+document.getElementById("moreBtn").onclick = ()=>{
+  document.getElementById("cfgBox").value = JSON.stringify(store, null, 1);
+  moreDlg.showModal();
+};
+document.getElementById("cfgClose").onclick = e=>{ e.preventDefault(); moreDlg.close(); };
+document.getElementById("cfgLoad").onclick = e=>{
+  e.preventDefault();
+  const box = document.getElementById("cfgBox");
+  try{
+    store = Object.assign(blankStore(), JSON.parse(box.value));
+    here = ""; save(); render(); moreDlg.close();
+  }catch(err){
+    box.value = "Kein gültiger Text — bitte den kompletten gesicherten Block einfügen.\n\n" + box.value;
+  }
+};
+document.getElementById("cfgReset").onclick = e=>{
+  e.preventDefault(); store = blankStore(); here = ""; save(); render(); moreDlg.close();
+};
+
+/* ------------------------------------------------------------------ *
+ *  Verdrahtung
+ * ------------------------------------------------------------------ */
+function toggleEdit(force){
+  const on = force !== undefined ? force : !editing();
+  document.body.classList.toggle("editing", on);
+  const b = document.getElementById("editBtn");
+  b.classList.toggle("on", on);
+  b.setAttribute("aria-pressed", String(on));
+  b.textContent = on ? "Fertig" : "Bearbeiten";
+  const t = document.getElementById("title");
+  if(on){
+    t.setAttribute("contenteditable","true");
+    t.onblur = ()=>{
+      store.ui.title = t.textContent.trim() || "Werkzeugkasten";
+      save(); render();
+    };
+    t.onkeydown = e=>{ if(e.key==="Enter"){ e.preventDefault(); t.blur(); } };
+  } else {
+    t.removeAttribute("contenteditable");
+  }
+  document.getElementById("hint").innerHTML = on
+    ? "<b>Bearbeiten</b> — Titel und Namen überschreiben, Kacheln auf einen Ordner ziehen, ✎ für Farbe und Symbol, × löscht (zweimal klicken)."
+    : "";
+  render();
+}
+document.getElementById("editBtn").onclick = ()=>toggleEdit();
+document.getElementById("q").addEventListener("input", render);
+
+document.addEventListener("keydown", e=>{
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  if(e.key === "/" && !typing){ e.preventDefault(); document.getElementById("q").focus(); return; }
+  if(e.key === "Escape" && document.activeElement === document.getElementById("q")){
+    document.getElementById("q").value = ""; render(); document.getElementById("q").blur(); return;
+  }
+  if(typing) return;
+  if(e.key === "Backspace" && here){ e.preventDefault(); here = (folderById(here)||{}).parent || ""; render(); return; }
+  if((e.key === "e" || e.key === "E") && !e.metaKey && !e.ctrlKey){ toggleEdit(); return; }
+  if(/^[1-9]$/.test(e.key) && !editing()){
+    const k = document.querySelector('.key[data-key="'+e.key+'"]');
+    if(k) k.click();
+  }
+});
+
+function render(){ applyUI(); renderCrumbs(); renderGrid(); paintSaved(); }
+
+load();
+if(!storageOK) document.getElementById("storagewarn").hidden = false;
+
+/* Wird eine verirrte Kopie geöffnet, stimmen alle relativen Pfade nicht mehr.
+   Chrome meldet dann nur ERR_FILE_NOT_FOUND — das hier sagt, was wirklich los ist. */
+// Noch kein Eintrag fuer diesen Mac? Dann zuerst EINRICHTEN.command laufen lassen.
+if(location.protocol === "file:" && HOME && !(window.STANDORTE && window.STANDORTE[HOME])){
+  document.getElementById("setupwarn").hidden = false;
+}
+
+if(location.protocol === "file:"){
+  const here = decodeURIComponent(location.pathname);
+  if(!/\/Werkzeugkasten\/Dashboard\/[^/]*$/.test(here)){
+    document.getElementById("placewarn").hidden = false;
+  }
+}
+
+render();
+WK_ABLAGE.laden().then(d=>{
+  if(d && !wkGeaendert){ store = Object.assign(blankStore(), d); store.ui = Object.assign({}, DEFAULT_UI, store.ui || {}); render(); }
+  else if(!d && store.saved){ WK_ABLAGE.sichern(store); }
+  else if(d && wkGeaendert){ WK_ABLAGE.sichern(store); }
+});
+</script>
+<p id="ablage-status" style="margin:28px auto 12px;max-width:960px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));font:12px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;opacity:.65">Speicher wird geprüft …</p>
+</body>
+</html>
