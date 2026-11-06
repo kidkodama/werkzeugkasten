@@ -106,6 +106,9 @@ body.fokus .stage svg{max-width:100%}
 @media (min-width:821px){body.fokus .game:not(.wide){grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}}
 body.fokus .bw:not(.small),body.fokus .stage>svg{max-width:min(100%,calc(100vh - 80px))}
 body.fokus .bw:not(.small):has(svg[aria-label="Cờ-tướng-Brett"]){max-width:min(100%,calc((100vh - 80px)*.909))}
+.popup .hoer{pointer-events:auto}
+.hoer{min-height:0;padding:3px 9px;font-size:12.5px;white-space:nowrap}
+.say{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--okbg);border-radius:5px;padding:4px 6px;font-size:12.5px}
 /* Steine und Tiere */
 .pop{animation:pop .28s ease-out}
 .fade{animation:fade .9s ease-in forwards}
@@ -371,6 +374,18 @@ const XQI={
  C:{vn:"Pháo",de:"Kanone",val:"4 bis 4,5",rule:"Zieht wie der Wagen. Schlägt nur, wenn genau eine Figur dazwischensteht.",tip:"Stark auf der Mittellinie. Im Endspiel braucht sie eine Figur als Schirm."},
  S:{vn:"Tốt",de:"Soldat",val:"1, nach dem Fluss 2",rule:"Ein Punkt vorwärts. Nach dem Fluss auch seitwärts. Nie zurück, keine Umwandlung.",tip:"Im Endspiel wird er viel wertvoller. Nicht leichtfertig tauschen."}
 };
+const XQS={
+ G:{de:"tüöng",ton:"sắc, steigt an",ipa:"tɨəŋ˧˥",hin:"ư wie ü, aber mit breiten Lippen."},
+ A:{de:"ssi",ton:"ngã, steigt mit kurzem Knick in der Stimme",ipa:"si˧ˀ˥",hin:"Scharfes s, kurzer Stimmbruch in der Mitte."},
+ E:{de:"tüöng",ton:"nặng, tief, kurz, abgehackt",ipa:"tɨəŋ˧ˀ˨ʔ",hin:"Klingt fast wie Tướng, nur der Ton trennt die beiden Figuren."},
+ H:{de:"maa",ton:"ngã, steigt mit kurzem Knick in der Stimme",ipa:"maː˧ˀ˥",hin:"Langes a, in der Mitte kurz gestoppt."},
+ R:{de:"ssä",ton:"ngang, eben und mittelhoch",ipa:"sɛ˧",hin:"x spricht man in Hanoi wie scharfes s, e wie offenes ä."},
+ C:{de:"fau",ton:"sắc, steigt an",ipa:"faːw˧˥",hin:"ph spricht man wie f."},
+ S:{de:"tot",ton:"sắc, steigt an",ipa:"tot̚˧˥",hin:"Geschlossenes o, das t am Ende bleibt stumm abgestoppt."}
+};
+function sag(w,btn){const alt=btn.textContent;const melde=m=>{btn.textContent=m;setTimeout(()=>{btn.textContent=alt},3500)};try{const S=window.speechSynthesis;if(!S){melde("Sprachausgabe fehlt");return}const los=()=>{const v=S.getVoices().find(x=>/^vi/i.test(x.lang));if(!v){melde("Keine vietnamesische Stimme installiert");return}const u=new SpeechSynthesisUtterance(w);u.lang=v.lang;u.voice=v;u.rate=.7;S.cancel();S.speak(u)};if(S.getVoices().length)los();else setTimeout(los,350)}catch(e){melde("Sprachausgabe fehlt")}}
+const sayT=k=>`Aussprache: „${XQS[k].de}“, Ton ${XQS[k].ton}.`;
+const hoerBtn=(k,label="Anhören")=>h("button",{class:"hoer",type:"button",onclick(e){e.stopPropagation();sag(XQI[k].vn,e.currentTarget)}},label);
 const XQ={
   glyph:{r:{G:"帥",A:"仕",E:"相",H:"傌",R:"俥",C:"炮",S:"兵"},b:{G:"將",A:"士",E:"象",H:"馬",R:"車",C:"砲",S:"卒"}},
   init(){const b=Array.from({length:10},()=>Array(9).fill(null)),back="RHEAGAEHR";for(let c=0;c<9;c++){b[0][c]={t:back[c],c:"b"};b[9][c]={t:back[c],c:"r"}}[1,7].forEach(c=>{b[2][c]={t:"C",c:"b"};b[7][c]={t:"C",c:"r"}});[0,2,4,6,8].forEach(c=>{b[3][c]={t:"S",c:"b"};b[6][c]={t:"S",c:"r"}});return b},
@@ -418,7 +433,7 @@ function xqSvg(b,o={}){const d=44,W=d*10,H=d*11,g=[],P=(y,x)=>[d*(x+1),d*(y+1)];
   (o.x||[]).forEach(([y,x])=>{const[a,c]=P(y,x);g.push(s("path",{d:`M${a-9} ${c-9}L${a+9} ${c+9}M${a+9} ${c-9}L${a-9} ${c+9}`,stroke:"var(--red)","stroke-width":4,"stroke-linecap":"round"}))});
   for(let y=0;y<10;y++)for(let x=0;x<9;x++){const[a,c]=P(y,x);g.push(s("rect",{x:a-22,y:c-22,width:44,height:44,fill:"transparent",style:o.click||b[y][x]?"cursor:pointer":null,onclick:o.click?()=>o.click(y,x):null,onmouseenter:o.hover?()=>o.hover(y,x):null,onmouseleave:o.hover?()=>o.hover(null):null}))}
   return s("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Cờ-tướng-Brett"},g)}
-function xqInfo(p,y){const i=XQI[p.t];return[h("div",{class:"pophead"},h("span",{class:"popg",style:`color:${p.c=="r"?"#B3202A":"#14201C"}`},XQ.glyph[p.c][p.t]),h("div",{},h("b",{},`${i.vn} · ${i.de}`),h("div",{class:"note"},`${p.c=="r"?"Rot":"Schwarz"}, Richtwert ${i.val}`))),h("p",{},i.rule),h("p",{class:"note"},"Tipp: "+i.tip)]}
+function xqInfo(p,y){const i=XQI[p.t];return[h("div",{class:"pophead"},h("span",{class:"popg",style:`color:${p.c=="r"?"#B3202A":"#14201C"}`},XQ.glyph[p.c][p.t]),h("div",{},h("b",{},`${i.vn} · ${i.de}`),h("div",{class:"note"},`${p.c=="r"?"Rot":"Schwarz"}, Richtwert ${i.val}`))),h("div",{class:"say"},h("span",{},h("b",{},`„${XQS[p.t].de}“`),` · Ton ${XQS[p.t].ton}`),hoerBtn(p.t)),h("p",{},i.rule),h("p",{class:"note"},"Tipp: "+i.tip)]}
 function xqView(){const box=h("div",{class:"bw"}),pop=makePopup();box.append(pop.el);let svg=null,pinned=null,lastB=null;
   const showP=(b,y,x)=>{if(!Store.get("xq-pop",true)){pop.hide();return}if(y==null||!b[y][x]){if(pinned&&b[pinned[0]][pinned[1]])pop.show(xqInfo(b[pinned[0]][pinned[1]]),pinned[0]>=5);else pop.hide();return}pop.show(xqInfo(b[y][x]),y>=5)};
   return{el:box,pop,pin(y,x){pinned=y==null?null:[y,x];if(lastB)showP(lastB,y,x)},draw(b,o={}){lastB=b;const nx=xqSvg(b,{...o,hover:matchMedia("(hover:hover)").matches?(y,x)=>showP(b,y,x):null});if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx}}}
@@ -428,15 +443,15 @@ function xqRules(root){const demo=(list,y,x,t,d,tip,extra)=>({t,d,tip,draw:xqSte
   const i0=XQ.init(),op1=XQ.apply(i0,7,1,7,4),op2=XQ.apply(op1,0,1,2,2);
   stepper(root,[
    {t:"Brett und Ziel",d:"Figuren stehen auf den Schnittpunkten. Jede Seite hat 16 Figuren, Rot beginnt in den meisten modernen Turnieren. Ziel ist es, den gegnerischen General mattzusetzen.",tip:"Tippe auf jede Figur: Du bekommst Name, Regel, Richtwert und erlaubte Züge. Am Computer reicht es, mit der Maus darauf zu zeigen.",draw:xqStep(i0,null)},
-   demo([["r","G",8,4]],8,4,"General, Tướng",XQI.G.rule,XQI.G.tip),
-   demo([["r","A",8,4]],8,4,"Berater, Sĩ",XQI.A.rule,XQI.A.tip),
-   demo([["r","E",7,4]],7,4,"Elefant, Tượng",XQI.E.rule,XQI.E.tip),
+   demo([["r","G",8,4]],8,4,"General, Tướng",XQI.G.rule+" "+sayT("G"),XQI.G.tip),
+   demo([["r","A",8,4]],8,4,"Berater, Sĩ",XQI.A.rule+" "+sayT("A"),XQI.A.tip),
+   demo([["r","E",7,4]],7,4,"Elefant, Tượng",XQI.E.rule+" "+sayT("E"),XQI.E.tip),
    demo([["r","E",7,4],["b","S",6,3]],7,4,"Elefant wird blockiert","Steht eine Figur auf dem Zwischenpunkt, ist diese Richtung gesperrt. Tippe den Soldaten an, um seine Züge zu sehen.",null),
-   demo([["r","H",5,4]],5,4,"Pferd, Mã",XQI.H.rule,XQI.H.tip),
+   demo([["r","H",5,4]],5,4,"Pferd, Mã",XQI.H.rule+" "+sayT("H"),XQI.H.tip),
    demo([["r","H",5,4],["r","S",4,4]],5,4,"Pferd wird blockiert","Das Pferd springt nicht. Eine Figur direkt neben ihm sperrt die beiden Züge in diese Richtung.","Einen gegnerischen Bein-Punkt zu besetzen, kann ein Pferd ausschalten."),
-   demo([["r","R",5,4],["b","S",2,4],["r","S",5,7]],5,4,"Wagen, Xe",XQI.R.rule,XQI.R.tip),
-   demo([["r","C",7,4],["r","S",4,4],["b","H",1,4]],7,4,"Kanone, Pháo",XQI.C.rule+" Hier schlägt sie das Pferd über den eigenen Soldaten.",XQI.C.tip),
-   demo([["r","S",6,4]],6,4,"Soldat, Tốt, vor dem Fluss","Zieht einen Punkt vorwärts, nie zurück.",XQI.S.tip),
+   demo([["r","R",5,4],["b","S",2,4],["r","S",5,7]],5,4,"Wagen, Xe",XQI.R.rule+" "+sayT("R"),XQI.R.tip),
+   demo([["r","C",7,4],["r","S",4,4],["b","H",1,4]],7,4,"Kanone, Pháo",XQI.C.rule+" Hier schlägt sie das Pferd über den eigenen Soldaten. "+sayT("C"),XQI.C.tip),
+   demo([["r","S",6,4]],6,4,"Soldat, Tốt, vor dem Fluss","Zieht einen Punkt vorwärts, nie zurück. "+sayT("S"),XQI.S.tip),
    demo([["r","S",3,4]],3,4,"Soldat nach dem Fluss","Jenseits des Flusses darf er auch seitwärts ziehen. Eine Umwandlung gibt es nicht.",null),
    {t:"Fliegender General",d:"Die Generale dürfen sich nicht ohne Figur dazwischen auf einer Linie gegenüberstehen. Der rote General dürfte hier nicht auf das Kreuz ziehen.",tip:"Das hilft beim Angriff: Der eigene General kann eine Linie für den Gegner sperren.",draw:t=>{const b=XQ.from([["r","G",9,3],["b","G",0,4]]);xqStep(b,[9,3],{x:[[9,4]],})(t)}},
    {t:"Schach und Matt",d:"Bedroht eine Figur den General, ist das Schach, auf Vietnamesisch wohl „chiếu“. Du musst sofort reagieren: ziehen, dazwischenstellen oder schlagen. Geht nichts davon, ist er matt.",draw:xqStep(XQ.from([["r","R",0,8],["r","R",1,0],["b","G",0,4],["r","G",9,3]]),[0,8])},
@@ -451,7 +466,8 @@ function xqFig(root){const keys=Object.keys(XQI);let k=Store.get("xq-fig","R"),p
   function pick(t){k=t;Store.set("xq-fig",k);pos=startPos[t];b=mkB();draw();v.pin(pos[0],pos[1])}
   function click(y,x){const mv=XQ.pseudo(b,pos[0],pos[1]);if(mv.some(([a,d])=>a==y&&d==x)){b=XQ.apply(b,pos[0],pos[1],y,x);pos=[y,x];st.textContent=`${XQI[k].vn} zieht nach ${XQ.coord(y,x)}.`;v.pin(y,x);draw()}else if(b[y][x]&&!(y==pos[0]&&x==pos[1])){v.pop.show(xqInfo(b[y][x]),y>=5);st.textContent="Dorthin darf die Figur nicht ziehen."}else st.textContent="Tippe einen rosa Punkt an."}
   function draw(){list.replaceChildren(...keys.map(t=>h("button",{class:"fig "+(t==k?"on":""),onclick:()=>pick(t)},h("span",{class:"popg",style:"color:#B3202A"},XQ.glyph.r[t]),h("span",{},h("b",{},XQI[t].vn),h("small",{},`${XQI[t].de} · ${XQI[t].val}`)))));v.draw(b,{sel:pos,moves:XQ.pseudo(b,pos[0],pos[1]),click})}
-  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},h("h3",{},"Figur ausprobieren"),list,st,h("div",{class:"ctrl"},h("button",{onclick(){blockers=true;b=mkB();draw();st.textContent="Neue Hindernisse. Rot lässt sich nicht schlagen, schwarze Soldaten schon."}},"Hindernisse streuen"),h("button",{onclick(){blockers=false;pick(k)}},"Zurücksetzen")),h("p",{class:"note"},"Hier gibt es keinen Gegner, die Figur zieht frei nach ihren Regeln. Die Richtwerte sind ungefähr: Quellen geben die Kanone mit 4 oder 4,5 an, die Stellung kann alles ändern."))));pick(k)}
+  const ausspr=h("section",{class:"tips"},h("h3",{},"So spricht man die Figuren in Hanoi"),h("div",{style:"overflow-x:auto"},h("table",{},h("tr",{},h("th",{},"Figur"),h("th",{},"Klingt etwa wie"),h("th",{},"Ton"),h("th",{},"Lautschrift"),h("th",{},"")),keys.map(t=>h("tr",{},h("td",{},h("b",{},XQI[t].vn),h("br"),h("span",{class:"note"},XQI[t].de)),h("td",{},h("b",{},XQS[t].de),h("br"),h("span",{class:"note"},XQS[t].hin)),h("td",{},XQS[t].ton),h("td",{},`[${XQS[t].ipa}]`),h("td",{},hoerBtn(t)))))),h("p",{class:"note"},"Die deutschen Umschriften sind nur Näherungen. Im Vietnamesischen unterscheidet der Ton die Bedeutung, deshalb klingen Tướng und Tượng trotz gleicher Umschrift verschieden. [Sicher] ist die Lautschrift von Tướng aus dem Wiktionary, die übrigen sind aus den Lautregeln des Hanoi-Dialekts abgeleitet und damit [Wahrscheinlich]. Lass sie dir vor Ort von jemandem bestätigen. Zum Anhören braucht dein Gerät eine vietnamesische Systemstimme."));
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},h("h3",{},"Figur ausprobieren"),list,st,h("div",{class:"ctrl"},h("button",{onclick(){blockers=true;b=mkB();draw();st.textContent="Neue Hindernisse. Rot lässt sich nicht schlagen, schwarze Soldaten schon."}},"Hindernisse streuen"),h("button",{onclick(){blockers=false;pick(k)}},"Zurücksetzen")),h("p",{class:"note"},"Hier gibt es keinen Gegner, die Figur zieht frei nach ihren Regeln. Die Richtwerte sind ungefähr: Quellen geben die Kanone mit 4 oder 4,5 an, die Stellung kann alles ändern."))),ausspr);pick(k)}
 const XQP=[
  {t:"Zwei Wagen",d:"Rot am Zug. Setze matt.",hint:"Ein Wagen sperrt schon die zweite Reihe. Der andere gibt Schach auf der Grundreihe.",list:[["b","G",0,4],["r","R",1,0],["r","R",5,8],["r","G",9,3]],sol:"R 5,8 → 0,8"},
  {t:"Doppelkanone",d:"Rot am Zug. Setze matt.",hint:"Eine Kanone wird zum Schirm für die andere, beide auf der Mittellinie.",list:[["b","G",0,4],["b","A",0,3],["b","A",0,5],["r","C",2,4],["r","C",6,8],["r","G",9,3]],sol:"C 6,8 → 6,4"},
@@ -781,7 +797,7 @@ function cnRules(root){stepper(root,[
 /* ---------- KATALOG ---------- */
 const SRC={
  go:[["Wikipedia: Rules of Go","https://en.wikipedia.org/wiki/Rules_of_Go"],["World Mind Games: Häufige Anfängerfehler","https://www.worldmindgames.net/common-beginner-mistakes-go/"],["Wikipedia: Go-Sprichwörter","https://en.wikipedia.org/wiki/Go_proverb"],["US Go: First Capture Go","https://www.usgo-archive.org/files/pdf/kids_capture_go.pdf"],["Vietcetera: Brettspiele in Vietnam","https://vietcetera.com/en/forget-werewolf-and-uno-here-are-traditional-board-games-in-vietnam-you-should-know"]],
- xq:[["Wikiwand: Xiangqi","https://wikiwand.com/en/Xiangqi"],["xiangqi.com: Eröffnungsprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-opening-principles"],["xiangqi.com: Mittelspielprinzipien","https://xiangqi.com/articles/ten-most-important-chinese-chess-midgame-principles"],["xiangqi.com: Endspielprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-endgame-principles"],["Texas State: Bericht aus einem Hanoier Park","https://txst.edu/clas/schoolpsychology/program-faculty/paul-jantz/rtrn-viet-nam/july-2023/page-7.html"]],
+ xq:[["Wikiwand: Xiangqi","https://wikiwand.com/en/Xiangqi"],["Wiktionary: tướng","https://en.wiktionary.com/wiki/t%C6%B0%E1%BB%9Bng"],["Wikipedia: Vietnamese phonology","https://wiki.riteme.site/wiki/Hanoi_dialect"],["xiangqi.com: Eröffnungsprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-opening-principles"],["xiangqi.com: Mittelspielprinzipien","https://xiangqi.com/articles/ten-most-important-chinese-chess-midgame-principles"],["xiangqi.com: Endspielprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-endgame-principles"],["Texas State: Bericht aus einem Hanoier Park","https://txst.edu/clas/schoolpsychology/program-faculty/paul-jantz/rtrn-viet-nam/july-2023/page-7.html"]],
  tl:[["Pagat: Thirteen / Tiến Lên","https://pagat.com/climbing/thirteen.html"]],
  oq:[["Wikipedia: Ô ăn quan","https://en.wikipedia.org/wiki/%C3%94_%C4%83n_quan"]],
  bc:[["Wikiwand: Bầu cua cá cọp","https://www.wikiwand.com/en/articles/Bau_cua_ca_cop"]],
