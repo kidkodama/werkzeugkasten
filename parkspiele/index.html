@@ -108,6 +108,8 @@ body.fokus .bw:not(.small),body.fokus .stage>svg{max-width:min(100%,calc(100vh -
 body.fokus .bw:not(.small):has(svg[aria-label="Cờ-tướng-Brett"]){max-width:min(100%,calc((100vh - 80px)*.909))}
 .hoer{min-height:0;padding:3px 9px;font-size:12.5px;white-space:nowrap}
 .say{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--okbg);border-radius:5px;padding:4px 6px;font-size:12.5px}
+.game>.stage,.game>.side{transition:transform .6s ease .35s}
+.game.gedreht>.stage,.game.gedreht>.side{transform:rotate(180deg)}
 /* Steine und Tiere */
 .pop{animation:pop .28s ease-out}
 .fade{animation:fade .9s ease-in forwards}
@@ -214,6 +216,8 @@ function stepper(root,steps,opts={}){
 
 /* ---------- GEMEINSAM ---------- */
 const toggle=(label,key,def,cb)=>{let on=Store.get(key,def);const b=h("button",{class:on?"on":"","aria-pressed":String(on),onclick(){on=!on;Store.set(key,on);b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));cb&&cb(on)}},label);return b};
+function drehe(el,on){const g=el&&el.closest(".game");if(g)g.classList.toggle("gedreht",!!on&&Store.get("dreh",true))}
+const drehKnopf=cb=>toggle("Brett mitdrehen","dreh",true,cb);
 function infoLeer(b){b.classList.add("leer");b.replaceChildren(h("p",{class:"note"},b.dataset.leer))}
 function makePopup(leer,key){const el=h("span",{hidden:true});const box=()=>{const g=el.closest(".game"),side=g&&g.querySelector(".side");if(!side)return null;let b=side.querySelector(":scope>.infobox");if(!b){b=h("div",{class:"infobox","aria-live":"polite"});b.dataset.leer=leer;side.prepend(b);infoLeer(b)}b.hidden=!!key&&!Store.get(key,true);return b};return{el,ensure:box,show(kids){const b=box();if(!b)return;b.classList.remove("leer");b.replaceChildren(...kids)},hide(){const b=box();if(b)infoLeer(b)}}}
 function puzzleNav(items,done,cur,go){return h("div",{class:"pnav"},items.map((p,i)=>h("button",{class:(i==cur?"on ":"")+(done.includes(i)?"solved":""),"aria-label":`Aufgabe ${i+1}${done.includes(i)?", gelöst":""}`,onclick:()=>go(i)},String(i+1))))}
@@ -350,14 +354,14 @@ function goPlay(root){
   function click(i){if(busy)return;if(!S.over&&S.b[i]){v.info(S.n,S.b,i);return}if(S.over){if(S.mode=="voll"&&S.b[i]){const g=Go.group(S.n,S.b,i);const on=!dead.has(i);g.stones.forEach(t=>on?dead.add(t):dead.delete(t));draw()}return}if(S.opp!="mensch"&&S.c!=1)return;place(i)}
   function autoBot(){if(S.over||S.opp=="mensch"||S.c!=2)return;busy=true;draw();const vv=ver;sleep(450).then(()=>{if(vv!==ver)return;busy=false;const m=Go.rate(S.n,S.b,2,S.ko,S.last,S.opp=="leicht"?35:5)[0];if(!m||m.sc<-15||(S.pass>0&&m.sc<25))doPass();else place(m.i)})}
   function coachText(){if(S.over||S.c==0)return"";const me=S.c,mine=Go.atariGroups(S.n,S.b,me),op=Go.atariGroups(S.n,S.b,3-me);if(mine.length)return`Deine Gruppe mit ${mine[0].stones.length} Stein${mine[0].stones.length>1?"en":""} steht im Atari. Retten, gegenschlagen oder bewusst aufgeben?`;if(op.length)return"Eine gegnerische Gruppe steht im Atari, du kannst sie schlagen.";if(S.b.filter(Boolean).length<4&&S.n>=9)return"Früh in der Partie: Ecken zuerst, dann Seiten, dann Mitte.";return"Zähle die Freiheiten deiner schwächsten Gruppe, bevor du angreifst."}
-  function draw(){const on=Store.get("go-coach",true),warn=on?[...Go.atariGroups(S.n,S.b,1),...Go.atariGroups(S.n,S.b,2)].flatMap(g=>g.stones):[];
+  function draw(){drehe(v.el,S.opp=="mensch"&&S.c==2&&!S.over);const on=Store.get("go-coach",true),warn=on?[...Go.atariGroups(S.n,S.b,1),...Go.atariGroups(S.n,S.b,2)].flatMap(g=>g.stones):[];
     let ar=null,bb=S.b;if(S.over&&S.mode=="voll"){bb=S.b.map((x,i)=>dead.has(i)?0:x);ar=Go.area(S.n,bb)}
     v.draw(S.n,S.b,{click,last:S.last,ghost,x:S.ko!=null?[S.ko]:[],warn,hint,terr:ar&&ar.terr,dead,ghostColor:S.over||(S.opp!="mensch"&&S.c==2)?0:S.c,hover(i){if(i!=null&&S.b[i])v.info(S.n,S.b,i);else if(i!=null)v.pop.hide()}});
     if(S.over){if(S.mode=="schlag"){st.textContent=`${S.win==1?"Schwarz":"Weiß"} gewinnt das Schlagspiel.`;scoreBox.textContent=""}else{const w=ar.white+7.5;st.textContent=(ar.black>w?"Schwarz":"Weiß")+" gewinnt.";scoreBox.textContent=`Chinesische Zählung: Schwarz ${ar.black}, Weiß ${ar.white} plus 7,5 Komi = ${String(w).replace(".",",")}. Tippe tote Steine an, um sie aus der Zählung zu nehmen.`}}
     else{st.textContent=busy?"Der Computer überlegt …":(S.c==1?"Schwarz":"Weiß")+" ist am Zug.";scoreBox.textContent=`Geschlagen: Schwarz ${S.caps[0]}, Weiß ${S.caps[1]}.`}
     info.textContent=msg;coach.textContent=on?coachText():"";coach.hidden=!on||!coach.textContent;passB.disabled=S.over;hintB.disabled=S.over;undo.disabled=!S.hist.length;
     Store.set("go-game",{...S,hist:S.hist.slice(-8)})}
-  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,scoreBox,info,coach,h("div",{class:"ctrl"},passB,hintB,undo,newB,coachT),h("div",{class:"ctrl"},nSel,mSel,oSel),h("p",{class:"note"},"Du spielst gegen den Computer immer Schwarz. Er folgt einfachen Faustregeln und ist bewusst schwach, also gut zum Üben, aber kein Maßstab. Zum Einstieg empfiehlt der US-Go-Verband das Schlagspiel auf 7×7 oder 9×9. Orange Ringe markieren Gruppen im Atari. Die Partie wird in diesem Browser gespeichert."))));draw();autoBot()}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,scoreBox,info,coach,h("div",{class:"ctrl"},passB,hintB,undo,newB,coachT,drehKnopf(()=>draw())),h("div",{class:"ctrl"},nSel,mSel,oSel),h("p",{class:"note"},"Du spielst gegen den Computer immer Schwarz. Zu zweit dreht sich das Spielfeld samt Text nach jedem Zug zur Person, die dran ist. Er folgt einfachen Faustregeln und ist bewusst schwach, also gut zum Üben, aber kein Maßstab. Zum Einstieg empfiehlt der US-Go-Verband das Schlagspiel auf 7×7 oder 9×9. Orange Ringe markieren Gruppen im Atari. Die Partie wird in diesem Browser gespeichert."))));draw();autoBot()}
 const GOTIPS=[
  {t:"Die ersten Partien",items:[["Mit dem Schlagspiel beginnen","Wer zuerst einen Stein schlägt, gewinnt. So übst du Freiheiten und Atari, bevor Gebiet dazukommt. Der US-Go-Verband empfiehlt dafür 7×7 oder 9×9.","S"],["Kleines Brett statt 19×19","Auf 9×9 ist eine Partie schnell zu Ende, und du siehst viele Enden. Das große Brett kommt später.","W"],["Freiheiten zählen","Falsch gezählte Freiheiten gehören zu den häufigsten Gründen für verlorene Kämpfe. Zähle laut mit, auch wenn es langsam ist.","W"],["Langsam spielen","Ein altes Go-Sprichwort sagt sinngemäß: Wer schnell spielt, verliert schnell.","W"]]},
  {t:"Eröffnung und Form",items:[["Ecke, Seite, Mitte","Ecken lassen sich mit den wenigsten Steinen sichern, danach folgen die Seiten und zuletzt die Mitte.","W"],["Verbunden bleiben","Halte eigene Steine zusammen und trenne die des Gegners. Getrennte Gruppen sind leichter anzugreifen.","W"],["Abstand statt Kleben","Wer jeden Stein direkt berührt, macht den Gegner oft nur stärker. Druck aus etwas Abstand wirkt meist besser.","W"],["Leere Dreiecke meiden","Drei eigene Steine im Winkel mit leerem vierten Punkt sind oft ineffizient.","W"]]},
@@ -511,7 +515,7 @@ function xqPlay(root){
   function maybeBot(){if(S.over||!S.bot||S.c!="b")return;busy=true;draw();const vv=ver;sleep(350).then(()=>{if(vv!==ver)return;const lvl=+S.level,m=lvl==1?XQ.best(S.b,"b",1,35):lvl==2?XQ.best(S.b,"b",2,4):XQ.best(S.b,"b",3,2);busy=false;moveTo(...m)})}
   function click(y,x){if(S.over||busy)return;if(sel&&moves.some(([a,d])=>a==y&&d==x)){moveTo(sel[0],sel[1],y,x);return}const p=S.b[y][x];if(p&&p.c==S.c&&!(S.bot&&S.c=="b")){sel=[y,x];moves=XQ.legal(S.b,y,x);v.pin(y,x);if(!moves.length)msg=`${XQI[p.t].vn} hat gerade keinen legalen Zug.`;else msg=""}else{if(p)v.pin(y,x);else v.pin(null);sel=null;moves=[]}draw()}
   function threats(){const out=[];for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=S.b[y][x];if(p&&p.c==S.c&&p.t!="G"&&XQ.attacked(S.b,y,x)&&!XQ.guarded(S.b,y,x))out.push([y,x])}return out}
-  function draw(){const on=Store.get("xq-coach",true),th=on&&!S.over?threats():[];const ch=XQ.inCheck(S.b,S.c),g=XQ.gen(S.b,S.c);const warn=[...th];if(ch&&g)warn.push(g);
+  function draw(){drehe(v.el,!S.bot&&S.c=="b"&&!S.over);const on=Store.get("xq-coach",true),th=on&&!S.over?threats():[];const ch=XQ.inCheck(S.b,S.c),g=XQ.gen(S.b,S.c);const warn=[...th];if(ch&&g)warn.push(g);
     v.draw(S.b,{sel,moves,click,last:S.last,lastFrom:S.lastFrom,warn,arrow});
     const n=S.c=="r"?"Rot":"Schwarz";st.textContent=S.over?`${ch?"Matt":"Patt"}: ${n} hat keinen legalen Zug und verliert.`:busy?"Der Computer überlegt …":`${n} ist am Zug${ch?", Schach!":"."}`;
     let co="";if(on&&!S.over&&!busy){if(ch)co="Schach. Prüfe drei Wege: General ziehen, dazwischenstellen oder die angreifende Figur schlagen.";else if(th.length){const[y,x]=th[0];co=`Dein ${XQI[S.b[y][x].t].vn} auf ${XQ.coord(y,x)} ist angegriffen und nicht gedeckt.`}else if(S.log.length<6)co="Eröffnung: Wagen, Pferde und Kanonen früh ins Spiel bringen, den General in Ruhe lassen.";else co="Frage vor jedem Zug: Was droht der letzte Zug des Gegners?"}
@@ -519,7 +523,7 @@ function xqPlay(root){
     const missing=c=>{const cnt={G:1,A:2,E:2,H:2,R:2,C:2,S:5};S.b.flat().forEach(p=>{if(p&&p.c==c)cnt[p.t]--});return Object.entries(cnt).flatMap(([t,k])=>Array(Math.max(k,0)).fill(XQI[t].vn))};
     capt.textContent=`Rot hat geschlagen: ${missing("b").join(", ")||"nichts"}. Schwarz hat geschlagen: ${missing("r").join(", ")||"nichts"}.`;
     log.replaceChildren(...S.log.map((m,i)=>h("span",{},`${i+1}. ${m}`)));log.scrollTop=log.scrollHeight;un.disabled=!S.hist.length;save()}
-  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,coach,info,h("div",{class:"ctrl"},hb,un,rs),h("label",{class:"sel"},"Stärke",lv),h("div",{class:"ctrl"},bt,coachT,...xqToggles(()=>draw())),capt,log,h("p",{class:"note"},"Du spielst Rot. Figur antippen, dann ein Ziel wählen, nur erlaubte Züge werden gezeigt. Orange Ringe markieren ungedeckte, angegriffene Figuren und den General im Schach. Sonderregeln gegen Dauerschach sind nicht eingebaut, sie unterscheiden sich je nach Regelwerk. Die Partie wird in diesem Browser gespeichert."))));draw();maybeBot()}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,coach,info,h("div",{class:"ctrl"},hb,un,rs),h("label",{class:"sel"},"Stärke",lv),h("div",{class:"ctrl"},bt,coachT,drehKnopf(()=>draw()),...xqToggles(()=>draw())),capt,log,h("p",{class:"note"},"Gegen den Computer spielst du Rot. Zu zweit dreht sich das Spielfeld samt Text nach jedem Zug zur Person, die dran ist. Figur antippen, dann ein Ziel wählen, nur erlaubte Züge werden gezeigt. Orange Ringe markieren ungedeckte, angegriffene Figuren und den General im Schach. Sonderregeln gegen Dauerschach sind nicht eingebaut, sie unterscheiden sich je nach Regelwerk. Die Partie wird in diesem Browser gespeichert."))));draw();maybeBot()}
 const XQTIPS=[
  {t:"Eröffnung",items:[["Hauptfiguren früh entwickeln","Wagen, Pferde und Kanonen zuerst auf gute Posten bringen.","W"],["Nichts verstopfen","Figuren sollen sich nicht gegenseitig den Weg nehmen. Zieh den Soldaten vor dem Pferd vor, wenn es dadurch frei wird.","W"],["General in Ruhe lassen","In der Ausgangsstellung steht er am sichersten.","W"],["Kanone nicht allein vorschicken","Eine einsam vorgeprellte Kanone wird leicht eingeschlossen.","W"],["Nicht hin und her ziehen","Züge ohne Ziel kosten Entwicklung.","W"],["Kanone für Pferd meist nicht tauschen","In der Eröffnung gilt die Kanone als etwas wertvoller.","W"]]},
  {t:"Mittelspiel",items:[["Zuerst die Drohung lesen","Vor deinem Plan kommt die Frage, was der letzte gegnerische Zug will. Ein angebotener Soldat kann eine Falle sein.","W"],["Wagen schützen","Stell den Wagen nicht isoliert oder angreifbar hin.","W"],["Material ist nicht alles","Gute Stellung oder Matt können ein Opfer rechtfertigen.","W"],["Zwischenzug","Spiele vor dem Tausch eine Drohung, auf die der Gegner antworten muss.","W"],["Pferd raus aus der Palastmitte","Dort engt es den eigenen General ein und lässt sich fesseln.","W"]]},
@@ -566,13 +570,13 @@ function gaRules(root){
   ]);}
 function gaPlay(root){let b=GA.init(),c=1,sel=null,flip=[],last=null,bot=true,over=false,busy=false;
   const stage=h("div",{class:"stage"}),st=h("div",{class:"status"}),info=h("div",{class:"note"});
-  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person"}},"Gegner: Computer");
+  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person";draw()}},"Gegner: Computer");
   const rs=h("button",{onclick(){ver++;b=GA.init();c=1;sel=null;flip=[];last=null;over=false;busy=false;draw()}},"Neu");
   function apply(from,to){const r=GA.move(b,from,to);b=r.board;flip=r.flipped;last=to;sel=null;c=3-c;if(!b.includes(c)||!GA.moves(b,c).length)over=true;draw();if(!over&&bot&&c==2)botMove()}
   async function botMove(){busy=true;const v=ver;await sleep(700);if(v!==ver)return;let best,bs=-1;shuffle(GA.moves(b,2)).forEach(m=>{const k=GA.move(b,m[0],m[1]).flipped.length;if(k>bs){bs=k;best=m}});busy=false;apply(best[0],best[1])}
   function click(i){if(over||busy)return;if(sel!=null&&GA.nb(sel).includes(i)&&!b[i]){apply(sel,i);return}sel=b[i]==c?i:null;draw()}
-  function draw(){stage.replaceChildren(gaSvg(b,{click,sel,flip,last,moves:sel!=null?GA.nb(sel).filter(i=>!b[i]):[]}));const nb=b.filter(x=>x==1).length,nw=b.filter(x=>x==2).length;st.textContent=over?(nb>nw?"Schwarz":"Weiß")+" gewinnt.":(c==1?"Schwarz":"Weiß")+" ist am Zug.";info.textContent=`Schwarz ${nb}, Weiß ${nw}.`}
-  root.append(h("div",{class:"game"},stage,h("div",{class:"side"},st,info,h("div",{class:"ctrl"},bt,rs),h("p",{class:"note"},"Der Computer nimmt den Zug mit den meisten Umfärbungen. Die Zusatzregel „mở“ (ein Zug, der den Gegner zum Einklemmen zwingt) wird nicht erzwungen, weil meine Quelle sie nicht genau genug beschreibt."))));draw()}
+  function draw(){drehe(stage,!bot&&c==2&&!over);stage.replaceChildren(gaSvg(b,{click,sel,flip,last,moves:sel!=null?GA.nb(sel).filter(i=>!b[i]):[]}));const nb=b.filter(x=>x==1).length,nw=b.filter(x=>x==2).length;st.textContent=over?(nb>nw?"Schwarz":"Weiß")+" gewinnt.":(c==1?"Schwarz":"Weiß")+" ist am Zug.";info.textContent=`Schwarz ${nb}, Weiß ${nw}.`}
+  root.append(h("div",{class:"game"},stage,h("div",{class:"side"},st,info,h("div",{class:"ctrl"},bt,rs,drehKnopf(()=>draw())),h("p",{class:"note"},"Der Computer nimmt den Zug mit den meisten Umfärbungen. Die Zusatzregel „mở“ (ein Zug, der den Gegner zum Einklemmen zwingt) wird nicht erzwungen, weil meine Quelle sie nicht genau genug beschreibt."))));draw()}
 
 /* ---------- Ô ĂN QUAN ---------- */
 function oaqRender(p,o={}){const box=h("div",{class:"oboard"});
@@ -606,7 +610,7 @@ function oaqRules(root){
 function oaqPlay(root){let p=OQ.init(),turn=0,sc=[0,0],debt=[0,0],busy=false,over=false,bot=true,chosen=null,fx={},msg="Du spielst unten. Wähle ein Feld und danach die Richtung.";
   const stage=h("div",{class:"stage"}),st=h("div",{class:"status"}),info=h("div",{class:"note"});
   const dirs=h("div",{class:"ctrl"});
-  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person"}},"Gegner: Computer");
+  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person";draw()}},"Gegner: Computer");
   const rs=h("button",{onclick(){ver++;p=OQ.init();turn=0;sc=[0,0];debt=[0,0];busy=false;over=false;chosen=null;fx={};msg="Neue Partie.";draw()}},"Neu");
   const own=t=>t==0?[7,8,9,10,11]:[1,2,3,4,5];
   function refill(t){if(own(t).some(i=>p[i].s>0))return;let need=5;const mine=Math.min(Math.max(sc[t],0),5);sc[t]-=mine;need-=mine;if(need){const o=1-t,b=Math.min(Math.max(sc[o],0),need);sc[o]-=b;debt[t]+=b;need-=b}const n=5-need;if(n==0){over=true;return}own(t).slice(0,n).forEach(i=>p[i].s=1);msg=(t==0?"Unten":"Oben")+" hatte keine Steine mehr und legt neu aus."}
@@ -616,12 +620,12 @@ function oaqPlay(root){let p=OQ.init(),turn=0,sc=[0,0],debt=[0,0],busy=false,ove
     turn=1-turn;refill(turn);if(over){finish();return}draw();if(bot&&turn==1)botMove()}
   async function botMove(){const v=ver;busy=true;draw();await sleep(600);if(v!==ver)return;let best=null,bs=-1;for(const i of own(1)){if(!p[i].s)continue;for(const d of[1,-1]){const c=JSON.parse(JSON.stringify(p));const g=OQ.sow(c,i,d);let r=g.next(),n=0;while(!r.done&&n++<5000)r=g.next();const val=(r.value||0)+Math.random();if(val>bs){bs=val;best=[i,d]}}}move(best[0],best[1])}
   function click(i){if(busy||over)return;chosen=i;draw()}
-  function draw(){const pick=!busy&&!over&&!(bot&&turn==1)?own(turn).filter(i=>p[i].s>0):[];
+  function draw(){const gedreht=!bot&&turn==1&&!over;drehe(stage,gedreht);const pick=!busy&&!over&&!(bot&&turn==1)?own(turn).filter(i=>p[i].s>0):[];
     stage.replaceChildren(oaqRender(p,{...fx,pick,click:pick.length?click:null}));
     st.textContent=over?(sc[0]==sc[1]?"Unentschieden.":(sc[0]>sc[1]?"Unten":"Oben")+" gewinnt."):(turn==0?"Unten":"Oben")+" ist am Zug.";
     info.textContent=`Punkte: unten ${sc[0]}, oben ${sc[1]}. ${msg}`;
-    dirs.replaceChildren();if(chosen!=null&&!busy&&!over){const toLeft=turn==0?1:-1;dirs.append(h("button",{class:"pri",onclick(){move(chosen,toLeft)}},"← nach links"),h("button",{class:"pri",onclick(){move(chosen,-toLeft)}},"nach rechts →"))}}
-  root.append(h("div",{class:"game wide"},stage,h("div",{class:"side"},st,dirs,info,h("div",{class:"ctrl"},bt,rs))));draw()}
+    dirs.replaceChildren();if(chosen!=null&&!busy&&!over){const toLeft=turn==0||(gedreht&&Store.get("dreh",true))?1:-1;dirs.append(h("button",{class:"pri",onclick(){move(chosen,toLeft)}},"← nach links"),h("button",{class:"pri",onclick(){move(chosen,-toLeft)}},"nach rechts →"))}}
+  root.append(h("div",{class:"game wide"},stage,h("div",{class:"side"},st,dirs,info,h("div",{class:"ctrl"},bt,rs,drehKnopf(()=>draw())))));draw()}
 
 /* ---------- WESTLICHE KARTEN ---------- */
 const SU=["♠","♣","♦","♥"],RK=["3","4","5","6","7","8","9","10","J","Q","K","A","2"];
