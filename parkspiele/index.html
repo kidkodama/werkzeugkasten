@@ -72,9 +72,8 @@ td,th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertic
 .stage svg{max-width:600px}
 .bw{position:relative;width:100%;max-width:600px}
 .bw.small{max-width:300px}
-.popup{position:absolute;left:8px;right:8px;margin:auto;max-width:330px;background:var(--panel);color:var(--ink);border:1px solid var(--ink);border-radius:8px;padding:8px 26px 8px 10px;font-size:13px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:5;pointer-events:none;display:grid;gap:4px}
-.popup.top{top:8px}.popup.bottom{bottom:8px}.popup[hidden],.coach[hidden]{display:none}
-.popx{position:absolute;top:2px;right:2px;min-height:0;padding:0 7px;line-height:22px;border:0;background:none;font-size:18px;pointer-events:auto}
+.infobox{background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:8px 10px;font-size:13.5px;line-height:1.45;display:grid;gap:5px;min-height:64px;align-content:start}
+.infobox.leer{align-content:center}
 .pophead{display:flex;gap:8px;align-items:center}
 .popg{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:50%;background:#F5ECD6;border:2px solid currentColor;font-weight:700;font-size:18px}
 .coach{font-size:13.5px;background:var(--okbg);padding:8px 10px;border-radius:6px}
@@ -107,7 +106,6 @@ body.fokus .stage svg{max-width:100%}
 @media (min-width:821px){body.fokus .game:not(.wide){grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}}
 body.fokus .bw:not(.small),body.fokus .stage>svg{max-width:min(100%,calc(100vh - 80px))}
 body.fokus .bw:not(.small):has(svg[aria-label="Cờ-tướng-Brett"]){max-width:min(100%,calc((100vh - 80px)*.909))}
-.popup .hoer{pointer-events:auto}
 .hoer{min-height:0;padding:3px 9px;font-size:12.5px;white-space:nowrap}
 .say{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--okbg);border-radius:5px;padding:4px 6px;font-size:12.5px}
 /* Steine und Tiere */
@@ -208,7 +206,7 @@ function stepper(root,steps,opts={}){
   const live=h("div",{class:"side","aria-live":"polite"},cnt,h("div",{class:"progress"},bar),title,text,tip,h("div",{class:"ctrl"},back,next,auto),opts.extra||null);
   root.append(h("div",{class:"game"},stage,live));
   let i=opts.key?Math.min(Store.get(opts.key,0),steps.length-1):0,tm=null;
-  function go(n){if(n<0||n>=steps.length)return;i=n;if(opts.key)Store.set(opts.key,i);const st=steps[i];stage.replaceChildren();st.draw(stage);title.textContent=st.t;text.textContent=st.d;tip.hidden=!st.tip;tip.textContent=st.tip?"Tipp: "+st.tip:"";cnt.textContent=`Schritt ${i+1} von ${steps.length}`;bar.style.width=((i+1)/steps.length*100)+"%";back.disabled=i==0;next.disabled=i==steps.length-1;}
+  function go(n){if(n<0||n>=steps.length)return;i=n;if(opts.key)Store.set(opts.key,i);const st=steps[i];stage.replaceChildren();const ib=live.querySelector(":scope>.infobox");if(ib)infoLeer(ib);st.draw(stage);title.textContent=st.t;text.textContent=st.d;tip.hidden=!st.tip;tip.textContent=st.tip?"Tipp: "+st.tip:"";cnt.textContent=`Schritt ${i+1} von ${steps.length}`;bar.style.width=((i+1)/steps.length*100)+"%";back.disabled=i==0;next.disabled=i==steps.length-1;}
   function toggleAuto(){if(tm){stop()}else{auto.textContent="Anhalten";auto.classList.add("on");tm=setInterval(()=>{if(i>=steps.length-1){stop();return}go(i+1)},5200);timers.push(tm)}}
   function stop(){clearInterval(tm);tm=null;auto.textContent="Abspielen";auto.classList.remove("on")}
   go(i);
@@ -216,7 +214,8 @@ function stepper(root,steps,opts={}){
 
 /* ---------- GEMEINSAM ---------- */
 const toggle=(label,key,def,cb)=>{let on=Store.get(key,def);const b=h("button",{class:on?"on":"","aria-pressed":String(on),onclick(){on=!on;Store.set(key,on);b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));cb&&cb(on)}},label);return b};
-function makePopup(){const el=h("div",{class:"popup",hidden:true});return{el,show(kids,top){el.replaceChildren(h("button",{class:"popx","aria-label":"Schließen",onclick:()=>{el.hidden=true}},"×"),...kids);el.classList.toggle("top",!!top);el.classList.toggle("bottom",!top);el.hidden=false},hide(){el.hidden=true}}}
+function infoLeer(b){b.classList.add("leer");b.replaceChildren(h("p",{class:"note"},b.dataset.leer))}
+function makePopup(leer,key){const el=h("span",{hidden:true});const box=()=>{const g=el.closest(".game"),side=g&&g.querySelector(".side");if(!side)return null;let b=side.querySelector(":scope>.infobox");if(!b){b=h("div",{class:"infobox","aria-live":"polite"});b.dataset.leer=leer;side.prepend(b);infoLeer(b)}b.hidden=!!key&&!Store.get(key,true);return b};return{el,ensure:box,show(kids){const b=box();if(!b)return;b.classList.remove("leer");b.replaceChildren(...kids)},hide(){const b=box();if(b)infoLeer(b)}}}
 function puzzleNav(items,done,cur,go){return h("div",{class:"pnav"},items.map((p,i)=>h("button",{class:(i==cur?"on ":"")+(done.includes(i)?"solved":""),"aria-label":`Aufgabe ${i+1}${done.includes(i)?", gelöst":""}`,onclick:()=>go(i)},String(i+1))))}
 function tipsView(root,groups){groups.forEach(g=>root.append(h("section",{class:"tips"},h("h3",{},g.t),g.intro?h("p",{class:"note"},g.intro):null,h("div",{class:"tipgrid"},g.items.map(([a,b,lvl])=>h("article",{class:"tip"},h("b",{},a),h("p",{},b),lvl?h("span",{class:"pill "+(lvl=="S"?"a":"b")},lvl=="S"?"[Sicher]":"[Wahrscheinlich]"):null))))))}
 
@@ -264,8 +263,8 @@ function goSvg(n,b,o={}){const d=40,S=d*(n+1),g=[];
 const ab=str=>str.replace(/\s/g,"").split("").map(c=>c=="b"?1:c=="w"?2:0);
 const L7=(...r)=>ab(r.join(""));
 const rc=(n,r,c)=>r*n+c;
-function goView(){const box=h("div",{class:"bw"}),pop=makePopup();let svg=null;box.append(pop.el);
-  return{el:box,pop,draw(n,b,o){const nx=goSvg(n,b,o);if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx},
+function goView(){const box=h("div",{class:"bw"}),pop=makePopup("Tippe einen Stein an, um die Freiheiten seiner Gruppe zu sehen.");let svg=null;box.append(pop.el);
+  return{el:box,pop,draw(n,b,o){const nx=goSvg(n,b,o);if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx;pop.ensure()},
     info(n,b,i){if(!b[i]){pop.hide();return}const g=Go.group(n,b,i),col=b[i]==1?"Schwarz":"Weiß",y=Math.floor(i/n);pop.show([h("b",{},`${col}: ${g.stones.length} Stein${g.stones.length>1?"e":""}, ${g.libs.length} Freiheit${g.libs.length==1?"":"en"}`),h("p",{},g.libs.length==1?"Atari! Diese Gruppe wird im nächsten Zug geschlagen, wenn nichts geschieht.":g.libs.length==2?"Achtung: Nach einem weiteren gegnerischen Stein steht sie im Atari.":"Diese Gruppe ist im Moment nicht akut bedroht.")],y>=n/2)}}}
 function goStep(n,b,o={}){return t=>{const v=goView();t.append(v.el);v.draw(n,b,{...o,click:i=>v.info(n,b,i)})}}
 function goRules(root){const n=7,e=".......";
@@ -348,12 +347,12 @@ function goPlay(root){
   function snap(){return{b:S.b,c:S.c,ko:S.ko,last:S.last,pass:S.pass,caps:S.caps.slice()}}
   function doPass(){S.hist.push(snap());S.pass++;S.ko=null;S.c=3-S.c;hint=null;ghost=[];msg=`${S.c==1?"Weiß":"Schwarz"} passt.`;if(S.pass>=2){S.over=true;msg="Beide haben gepasst. Tippe tote Steine an, damit sie nicht mitzählen."}draw();autoBot()}
   function place(i){const r=Go.play(S.n,S.b,i,S.c,S.ko);if(!r.ok){msg=r.why;draw();return false}S.hist.push(snap());if(S.hist.length>200)S.hist.shift();ghost=r.cap.map(t=>[t,3-S.c]);S.b=r.board;S.ko=r.ko;S.last=i;S.pass=0;S.caps[S.c-1]+=r.cap.length;msg=r.cap.length?`${S.c==1?"Schwarz":"Weiß"} schlägt ${r.cap.length} Stein${r.cap.length>1?"e":""}.`:"";if(S.mode=="schlag"&&r.cap.length){S.over=true;S.win=S.c}S.c=3-S.c;hint=null;draw();autoBot();return true}
-  function click(i){if(busy)return;if(S.over){if(S.mode=="voll"&&S.b[i]){const g=Go.group(S.n,S.b,i);const on=!dead.has(i);g.stones.forEach(t=>on?dead.add(t):dead.delete(t));draw()}return}if(S.opp!="mensch"&&S.c!=1)return;place(i)}
+  function click(i){if(busy)return;if(!S.over&&S.b[i]){v.info(S.n,S.b,i);return}if(S.over){if(S.mode=="voll"&&S.b[i]){const g=Go.group(S.n,S.b,i);const on=!dead.has(i);g.stones.forEach(t=>on?dead.add(t):dead.delete(t));draw()}return}if(S.opp!="mensch"&&S.c!=1)return;place(i)}
   function autoBot(){if(S.over||S.opp=="mensch"||S.c!=2)return;busy=true;draw();const vv=ver;sleep(450).then(()=>{if(vv!==ver)return;busy=false;const m=Go.rate(S.n,S.b,2,S.ko,S.last,S.opp=="leicht"?35:5)[0];if(!m||m.sc<-15||(S.pass>0&&m.sc<25))doPass();else place(m.i)})}
   function coachText(){if(S.over||S.c==0)return"";const me=S.c,mine=Go.atariGroups(S.n,S.b,me),op=Go.atariGroups(S.n,S.b,3-me);if(mine.length)return`Deine Gruppe mit ${mine[0].stones.length} Stein${mine[0].stones.length>1?"en":""} steht im Atari. Retten, gegenschlagen oder bewusst aufgeben?`;if(op.length)return"Eine gegnerische Gruppe steht im Atari, du kannst sie schlagen.";if(S.b.filter(Boolean).length<4&&S.n>=9)return"Früh in der Partie: Ecken zuerst, dann Seiten, dann Mitte.";return"Zähle die Freiheiten deiner schwächsten Gruppe, bevor du angreifst."}
   function draw(){const on=Store.get("go-coach",true),warn=on?[...Go.atariGroups(S.n,S.b,1),...Go.atariGroups(S.n,S.b,2)].flatMap(g=>g.stones):[];
     let ar=null,bb=S.b;if(S.over&&S.mode=="voll"){bb=S.b.map((x,i)=>dead.has(i)?0:x);ar=Go.area(S.n,bb)}
-    v.draw(S.n,S.b,{click,last:S.last,ghost,x:S.ko!=null?[S.ko]:[],warn,hint,terr:ar&&ar.terr,dead,ghostColor:S.over||(S.opp!="mensch"&&S.c==2)?0:S.c,hover(i){if(i!=null&&S.b[i]&&Store.get("go-coach",true))v.info(S.n,S.b,i);else v.pop.hide()}});
+    v.draw(S.n,S.b,{click,last:S.last,ghost,x:S.ko!=null?[S.ko]:[],warn,hint,terr:ar&&ar.terr,dead,ghostColor:S.over||(S.opp!="mensch"&&S.c==2)?0:S.c,hover(i){if(i!=null&&S.b[i])v.info(S.n,S.b,i);else if(i!=null)v.pop.hide()}});
     if(S.over){if(S.mode=="schlag"){st.textContent=`${S.win==1?"Schwarz":"Weiß"} gewinnt das Schlagspiel.`;scoreBox.textContent=""}else{const w=ar.white+7.5;st.textContent=(ar.black>w?"Schwarz":"Weiß")+" gewinnt.";scoreBox.textContent=`Chinesische Zählung: Schwarz ${ar.black}, Weiß ${ar.white} plus 7,5 Komi = ${String(w).replace(".",",")}. Tippe tote Steine an, um sie aus der Zählung zu nehmen.`}}
     else{st.textContent=busy?"Der Computer überlegt …":(S.c==1?"Schwarz":"Weiß")+" ist am Zug.";scoreBox.textContent=`Geschlagen: Schwarz ${S.caps[0]}, Weiß ${S.caps[1]}.`}
     info.textContent=msg;coach.textContent=on?coachText():"";coach.hidden=!on||!coach.textContent;passB.disabled=S.over;hintB.disabled=S.over;undo.disabled=!S.hist.length;
@@ -436,11 +435,11 @@ function xqSvg(b,o={}){const d=44,W=d*10,H=d*11,g=[],P=(y,x)=>[d*(x+1),d*(y+1)];
   for(let y=0;y<10;y++)for(let x=0;x<9;x++){const[a,c]=P(y,x);g.push(s("rect",{x:a-22,y:c-22,width:44,height:44,fill:"transparent",style:o.click||b[y][x]?"cursor:pointer":null,onclick:o.click?()=>o.click(y,x):null,onmouseenter:o.hover?()=>o.hover(y,x):null,onmouseleave:o.hover?()=>o.hover(null):null}))}
   return s("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Cờ-tướng-Brett"},g)}
 function xqInfo(p,y){const i=XQI[p.t];return[h("div",{class:"pophead"},h("span",{class:"popg",style:`color:${p.c=="r"?"#B3202A":"#14201C"}`},XQ.glyph[p.c][p.t]),h("div",{},h("b",{},`${i.vn} · ${i.de}`),h("div",{class:"note"},`${p.c=="r"?"Rot":"Schwarz"}, Richtwert ${i.val}`))),h("div",{class:"say"},h("span",{},h("b",{},`„${XQS[p.t].de}“`),` · Ton ${XQS[p.t].ton}`),hoerBtn(p.t)),h("p",{},i.rule),h("p",{class:"note"},"Tipp: "+i.tip)]}
-function xqView(){const box=h("div",{class:"bw"}),pop=makePopup();box.append(pop.el);let svg=null,pinned=null,lastB=null;
+function xqView(){const box=h("div",{class:"bw"}),pop=makePopup("Tippe eine Figur an, um Name, Aussprache, Regel und Tipp zu sehen.","xq-pop");box.append(pop.el);let svg=null,pinned=null,lastB=null;
   const showP=(b,y,x)=>{if(!Store.get("xq-pop",true)){pop.hide();return}if(y==null||!b[y][x]){if(pinned&&b[pinned[0]][pinned[1]])pop.show(xqInfo(b[pinned[0]][pinned[1]]),pinned[0]>=5);else pop.hide();return}pop.show(xqInfo(b[y][x]),y>=5)};
-  return{el:box,pop,pin(y,x){pinned=y==null?null:[y,x];if(lastB)showP(lastB,y,x)},draw(b,o={}){lastB=b;const nx=xqSvg(b,{...o,hover:matchMedia("(hover:hover)").matches?(y,x)=>showP(b,y,x):null});if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx}}}
+  return{el:box,pop,pin(y,x){pinned=y==null?null:[y,x];if(lastB)showP(lastB,y,x)},draw(b,o={}){lastB=b;const nx=xqSvg(b,{...o,hover:matchMedia("(hover:hover)").matches?(y,x)=>showP(b,y,x):null});if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx;pop.ensure()}}}
 function xqStep(b,sel,extra={}){return t=>{const v=xqView();let s0=sel,mv=sel?XQ.pseudo(b,sel[0],sel[1]):[];const rd=()=>v.draw(b,{sel:s0,moves:mv,...extra,click(y,x){if(b[y][x]){s0=[y,x];mv=XQ.pseudo(b,y,x);v.pin(y,x)}else{s0=null;mv=[];v.pin(null)}rd()}});t.append(v.el);rd();if(sel&&b[sel[0]][sel[1]])v.pin(sel[0],sel[1])}}
-function xqToggles(cb){return[toggle("Namen auf Figuren","xq-labels",true,cb),toggle("Pop-ups mit Regeln","xq-pop",true,cb)]}
+function xqToggles(cb){return[toggle("Namen auf Figuren","xq-labels",true,cb),toggle("Infobox","xq-pop",true,cb)]}
 function xqRules(root){const demo=(list,y,x,t,d,tip,extra)=>({t,d,tip,draw:xqStep(XQ.from(list),[y,x],extra)});
   const i0=XQ.init(),op1=XQ.apply(i0,7,1,7,4),op2=XQ.apply(op1,0,1,2,2);
   stepper(root,[
