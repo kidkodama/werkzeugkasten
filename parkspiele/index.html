@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Hanoi Parkspiele</title><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}body{margin:0;font-size:14px}img{max-width:100%}</style></head><body>
+<title>Hanoi Parkspiele</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@700;800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<style>
+/* Layout: Spieleliste wie eine Parkbank links, rechts das Spielbrett als Bühne, Regeltext direkt daneben. Farben: Parkgrün, Lotus, Brettholz. */
+:root{
+  --bg:#EAF0E4;--panel:#F7F9F2;--ink:#14322A;--mute:#52685F;--line:#C3D0BE;
+  --accent:#B62C63;--accent-ink:#FFFFFF;--wood:#DDB877;--wood-line:#6B4A1E;
+  --ok:#1D6B4A;--warn:#8F5A00;--bad:#A3262E;--okbg:#D5EBDD;--warnbg:#F5E5C4;--badbg:#F4D9D9;
+  --stone-b:#17201D;--stone-w:#F8F8F2;--red:#B3202A;--card:#FFFEF8;--cardink:#1A2421;
+  --disp:"Alegreya",Georgia,serif;--body:"Be Vietnam Pro",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1D19;--panel:#172923;--ink:#E5EFE7;--mute:#A0B5AA;--line:#2F4A40;
+  --accent:#EE7DA6;--accent-ink:#2A0A18;--wood:#C49F60;--wood-line:#4A3210;
+  --ok:#7FD3A8;--warn:#E5BC6C;--bad:#F19B9B;--okbg:#1B3D30;--warnbg:#40320F;--badbg:#472020;
+  --stone-b:#101513;--stone-w:#F4F4EC;--red:#D23A44;--card:#FAF8EE;--cardink:#1A2421;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1D19;--panel:#172923;--ink:#E5EFE7;--mute:#A0B5AA;--line:#2F4A40;
+  --accent:#EE7DA6;--accent-ink:#2A0A18;--wood:#C49F60;--wood-line:#4A3210;
+  --ok:#7FD3A8;--warn:#E5BC6C;--bad:#F19B9B;--okbg:#1B3D30;--warnbg:#40320F;--badbg:#472020;
+  --stone-b:#101513;--stone-w:#F4F4EC;--red:#D23A44;--card:#FAF8EE;--cardink:#1A2421;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--body)}
+.wrap{max-width:1180px;margin:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+h1,h2,h3{font-family:var(--disp);line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800}
+h2{font-size:clamp(26px,4vw,36px);font-weight:800}
+h3{font-size:21px;font-weight:700}
+p{margin:0}
+.intro{display:grid;gap:8px;max-width:72ch;margin-bottom:18px}
+.intro p{color:var(--mute)}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start}
+nav{display:grid;gap:2px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px)}
+nav a{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 10px;border-radius:6px;color:var(--ink);text-decoration:none;font-weight:500}
+nav a:hover{background:var(--panel)}
+nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+nav small{display:block;font-weight:400;font-size:12px;opacity:.75}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.dot.a{background:var(--ok)}.dot.b{background:var(--warn)}.dot.c{background:var(--bad)}
+.legend{font-size:12px;color:var(--mute);display:grid;gap:3px;padding:10px;margin-top:6px}
+.legend span{display:flex;gap:7px;align-items:center}
+main{min-width:0;display:grid;gap:14px}
+.head{display:grid;gap:6px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12.5px;font-weight:600;width:fit-content}
+.pill.a{background:var(--okbg);color:var(--ok)}.pill.b{background:var(--warnbg);color:var(--warn)}.pill.c{background:var(--badbg);color:var(--bad)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 12px;min-height:36px}
+button:hover:not(:disabled){border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+button.on,button.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.game{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.game.wide{grid-template-columns:minmax(0,1fr)}
+.stage{min-width:0;display:grid;gap:10px;justify-items:center}
+.stage svg{width:100%;max-width:520px;height:auto;display:block}
+.side{min-width:0;display:grid;gap:10px}
+.count{font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.ctrl{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.status{font-weight:600;min-height:1.5em}
+.note{font-size:13px;color:var(--mute)}
+.warnbox{font-size:13.5px;background:var(--warnbg);color:var(--ink);padding:8px 10px;border-radius:6px}
+.src{font-size:13px;color:var(--mute);display:grid;gap:3px}
+.src a{color:var(--accent)}
+.src ul{margin:0;padding-left:18px}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+td,th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+.stage svg{max-width:600px}
+.bw{position:relative;width:100%;max-width:600px}
+.bw.small{max-width:300px}
+.popup{position:absolute;left:8px;right:8px;margin:auto;max-width:330px;background:var(--panel);color:var(--ink);border:1px solid var(--ink);border-radius:8px;padding:8px 26px 8px 10px;font-size:13px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.28);z-index:5;pointer-events:none;display:grid;gap:4px}
+.popup.top{top:8px}.popup.bottom{bottom:8px}.popup[hidden],.coach[hidden]{display:none}
+.popx{position:absolute;top:2px;right:2px;min-height:0;padding:0 7px;line-height:22px;border:0;background:none;font-size:18px;pointer-events:auto}
+.pophead{display:flex;gap:8px;align-items:center}
+.popg{display:inline-grid;place-items:center;width:32px;height:32px;flex:none;border-radius:50%;background:#F5ECD6;border:2px solid currentColor;font-weight:700;font-size:18px}
+.coach{font-size:13.5px;background:var(--okbg);padding:8px 10px;border-radius:6px}
+.progress{height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.pnav{display:flex;gap:4px;flex-wrap:wrap}
+.pnav button{min-width:34px;padding:4px 8px}
+.pnav button.solved{border-color:var(--ok);color:var(--ok);font-weight:700}
+.pnav button.solved.on{color:var(--accent-ink)}
+.sel{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+select{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px;min-height:36px;max-width:100%}
+.log{display:flex;flex-wrap:wrap;gap:3px 10px;max-height:110px;overflow:auto;font-size:12.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.figs{display:grid;gap:4px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.fig{display:flex;gap:8px;align-items:center;text-align:left;padding:5px 8px}
+.fig small{display:block;font-size:11.5px;font-weight:400}
+.fig.on{border:2px solid var(--accent)}
+.tips{display:grid;gap:8px}
+.tipgrid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.tip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:4px;align-content:start}
+.tip p{font-size:13.5px}
+body.fokus .wrap{max-width:none;padding-block:6px}
+body.fokus .intro{margin:0 0 6px;max-width:none}
+body.fokus .intro h1,body.fokus .intro>p,body.fokus .layout>div:first-child,body.fokus .head,body.fokus .src{display:none}
+body.fokus .intro>div{justify-content:flex-end}
+body.fokus .intro>div>span{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);right:max(16px,env(safe-area-inset-right,0px));z-index:9}
+body.fokus .intro{height:0;margin:0}
+body.fokus .layout{grid-template-columns:minmax(0,1fr)}
+body.fokus .game{padding:8px;gap:12px}
+body.fokus .stage svg{max-width:100%}
+@media (min-width:821px){body.fokus .game:not(.wide){grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr)}}
+body.fokus .bw:not(.small),body.fokus .stage>svg{max-width:min(100%,calc(100vh - 80px))}
+body.fokus .bw:not(.small):has(svg[aria-label="Cờ-tướng-Brett"]){max-width:min(100%,calc((100vh - 80px)*.909))}
+/* Steine und Tiere */
+.pop{animation:pop .28s ease-out}
+.fade{animation:fade .9s ease-in forwards}
+.flip{animation:flip .55s ease-in-out}
+.pulse{animation:pulse 1.3s ease-in-out infinite}
+.piece{transition:transform .45s ease}
+@keyframes pop{from{transform:scale(.2);opacity:.2}to{transform:scale(1);opacity:1}}
+@keyframes fade{from{opacity:1}to{opacity:0}}
+@keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.05)}100%{transform:scaleX(1)}}
+@keyframes pulse{50%{opacity:.35}}
+.tb{transform-box:fill-box;transform-origin:center}
+/* Westliche Karten */
+.cards{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;min-height:62px}
+.pc{width:40px;height:58px;border-radius:5px;background:var(--card);color:var(--cardink);border:1px solid var(--line);display:grid;place-items:center;font-weight:600;font-size:14px;line-height:1.05;padding:0;min-height:0;text-align:center;animation:pop .22s ease-out}
+.pc.r{color:#B3202A}
+.pc.sel{transform:translateY(-8px);border:2px solid var(--accent)}
+.pc.down{background:repeating-linear-gradient(45deg,var(--ink) 0 4px,var(--mute) 4px 8px);color:transparent}
+.pc.win{outline:3px solid var(--ok);outline-offset:1px}
+.pc.dim{opacity:.5}
+/* Lange Karten */
+.lc{width:38px;height:122px;border-radius:4px;background:var(--card);color:var(--cardink);border:1px solid var(--line);padding:4px 0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:600;min-height:0;line-height:1.1;text-align:center;animation:pop .22s ease-out}
+.lc b{font-family:var(--disp);font-size:17px}
+.lc.van{border-top:7px solid #2C5E8A}.lc.sach{border-top:7px solid #2F7A4F}.lc.vn{border-top:7px solid #8A4B2C}.lc.yeu{border-top:7px solid #B3202A}
+.lc.sel{outline:3px solid var(--accent);transform:translateY(-6px)}
+.lc.hl{outline:3px solid var(--ok)}.lc.hl2{outline:3px solid #C58A10}.lc.hl3{outline:3px solid #2C5E8A}.lc.hl4{outline:3px dashed #A3262E}
+.grid30{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;width:100%;max-width:440px}
+.grid30 .lc{width:100%;height:76px;font-size:9.5px}.grid30 .lc b{font-size:14px}
+.table4{display:grid;gap:8px;width:100%}
+.seat{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
+.seat b{min-width:64px}
+/* Ô ăn quan */
+.oboard{display:grid;grid-template-columns:1.1fr repeat(5,1fr) 1.1fr;grid-template-rows:1fr 1fr;gap:3px;width:100%;max-width:560px;background:var(--wood);padding:6px;border-radius:50px}
+.pit{position:relative;background:color-mix(in srgb,var(--wood) 70%,#fff);aspect-ratio:1;border:1px solid var(--wood-line);color:#2A1C08;padding:0;min-height:0;border-radius:6px;display:flex;flex-wrap:wrap;gap:1px;align-items:center;justify-content:center;align-content:center;overflow:hidden;transition:background .15s}
+.pit.m{grid-row:1/3;aspect-ratio:auto;border-radius:50% 0 0 50%}.pit.m.r{border-radius:0 50% 50% 0}
+.pit i{width:7px;height:7px;border-radius:50%;background:#3A3A35;display:block}
+.pit i.big{width:20px;height:20px;background:#7A2E18}
+.pit span{position:absolute;bottom:1px;right:4px;font-size:11px;font-weight:600}
+.pit.act{background:#FFE9A8}.pit.cap{background:#F2B6B6}
+.pit.pick{box-shadow:inset 0 0 0 3px var(--accent)}
+/* Bầu cua */
+.bets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;max-width:420px}
+.bet{display:grid;justify-items:center;gap:2px;padding:8px 4px}
+.bet.hit{background:var(--okbg);border-color:var(--ok)}
+.sym{font-size:30px;line-height:1;height:32px;display:grid;place-items:center}
+.dice{display:flex;gap:10px;justify-content:center}
+.die{width:66px;height:66px;border-radius:10px;background:var(--card);color:var(--cardink);border:1px solid var(--line);display:grid;place-items:center;font-size:30px}
+.die.roll{animation:shake .25s linear infinite}
+@keyframes shake{0%{transform:rotate(-14deg) translateY(-4px)}50%{transform:rotate(14deg) translateY(3px)}100%{transform:rotate(-14deg)}}
+@media (max-width:820px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  nav{position:static;display:flex;overflow-x:auto;gap:4px;padding-bottom:6px}
+  nav a{flex:none}nav small{display:none}
+  .legend{display:none}
+  .game{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><h1>Hanoi Parkspiele</h1><span style="display:flex;gap:6px"><button id="echtvoll" type="button" class="pri">Vollbild</button><button id="vollbild" type="button">Fokus</button></span></div>
+    <p>Die Regeln der Spiele aus dem Park, zum Durchklicken und Selbstspielen. Dein Brettspiel mit schwarzen und weißen Steinen war vermutlich <a href="#go" style="color:var(--accent)">Cờ vây (Go)</a>, das Kartenspiel mit den langen Karten in Hanoi vermutlich <a href="#chan" style="color:var(--accent)">Chắn</a>. Gesehen habe ich beide nicht, das bleibt eine Schlussfolgerung aus deiner Beschreibung.</p>
+  </header>
+  <div class="layout">
+    <div>
+      <nav id="nav" aria-label="Spiele"></nav>
+      <div class="legend">
+        <span><i class="dot a"></i>Regeln gut belegt</span>
+        <span><i class="dot b"></i>Eine Quelle oder starke Varianten</span>
+        <span><i class="dot c"></i>Nicht gesichert, nicht animiert</span>
+      </div>
+    </div>
+    <main id="main"></main>
+  </div>
+</div>
+
+<script>
+"use strict";
+const NS="http://www.w3.org/2000/svg";
+function fill(e,a,k){for(const x in a){const v=a[x];if(v===false||v==null)continue;if(x.startsWith("on"))e.addEventListener(x.slice(2),v);else e.setAttribute(x,v===true?"":v);}k.flat(9).forEach(c=>{if(c!=null&&c!==false)e.append(c)});return e}
+const h=(t,a={},...k)=>fill(document.createElement(t),a,k);
+const s=(t,a={},...k)=>fill(document.createElementNS(NS,t),a,k);
+const sleep=ms=>new Promise(r=>setTimeout(r,matchMedia("(prefers-reduced-motion:reduce)").matches?Math.min(ms,30):ms));
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+let ver=0, timers=[];
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n);
+
+const Store={get(k,d){try{const v=localStorage.getItem("hps:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("hps:"+k,JSON.stringify(v))}catch(e){}}};
+/* Schritt-für-Schritt-Regeln */
+function stepper(root,steps,opts={}){
+  const stage=h("div",{class:"stage"}),title=h("h3"),text=h("p"),tip=h("div",{class:"coach",hidden:true}),cnt=h("div",{class:"count"}),bar=h("i");
+  const back=h("button",{onclick:()=>go(i-1)},"Zurück"),next=h("button",{class:"pri",onclick:()=>go(i+1)},"Weiter");
+  const auto=h("button",{onclick:toggleAuto},"Abspielen");
+  const live=h("div",{class:"side","aria-live":"polite"},cnt,h("div",{class:"progress"},bar),title,text,tip,h("div",{class:"ctrl"},back,next,auto),opts.extra||null);
+  root.append(h("div",{class:"game"},stage,live));
+  let i=opts.key?Math.min(Store.get(opts.key,0),steps.length-1):0,tm=null;
+  function go(n){if(n<0||n>=steps.length)return;i=n;if(opts.key)Store.set(opts.key,i);const st=steps[i];stage.replaceChildren();st.draw(stage);title.textContent=st.t;text.textContent=st.d;tip.hidden=!st.tip;tip.textContent=st.tip?"Tipp: "+st.tip:"";cnt.textContent=`Schritt ${i+1} von ${steps.length}`;bar.style.width=((i+1)/steps.length*100)+"%";back.disabled=i==0;next.disabled=i==steps.length-1;}
+  function toggleAuto(){if(tm){stop()}else{auto.textContent="Anhalten";auto.classList.add("on");tm=setInterval(()=>{if(i>=steps.length-1){stop();return}go(i+1)},5200);timers.push(tm)}}
+  function stop(){clearInterval(tm);tm=null;auto.textContent="Abspielen";auto.classList.remove("on")}
+  go(i);
+}
+
+/* ---------- GEMEINSAM ---------- */
+const toggle=(label,key,def,cb)=>{let on=Store.get(key,def);const b=h("button",{class:on?"on":"","aria-pressed":String(on),onclick(){on=!on;Store.set(key,on);b.classList.toggle("on",on);b.setAttribute("aria-pressed",String(on));cb&&cb(on)}},label);return b};
+function makePopup(){const el=h("div",{class:"popup",hidden:true});return{el,show(kids,top){el.replaceChildren(h("button",{class:"popx","aria-label":"Schließen",onclick:()=>{el.hidden=true}},"×"),...kids);el.classList.toggle("top",!!top);el.classList.toggle("bottom",!top);el.hidden=false},hide(){el.hidden=true}}}
+function puzzleNav(items,done,cur,go){return h("div",{class:"pnav"},items.map((p,i)=>h("button",{class:(i==cur?"on ":"")+(done.includes(i)?"solved":""),"aria-label":`Aufgabe ${i+1}${done.includes(i)?", gelöst":""}`,onclick:()=>go(i)},String(i+1))))}
+function tipsView(root,groups){groups.forEach(g=>root.append(h("section",{class:"tips"},h("h3",{},g.t),g.intro?h("p",{class:"note"},g.intro):null,h("div",{class:"tipgrid"},g.items.map(([a,b,lvl])=>h("article",{class:"tip"},h("b",{},a),h("p",{},b),lvl?h("span",{class:"pill "+(lvl=="S"?"a":"b")},lvl=="S"?"[Sicher]":"[Wahrscheinlich]"):null))))))}
+
+/* ---------- GO ---------- */
+const Go={
+  nb(n,i){const r=[],x=i%n,y=(i-x)/n;if(x>0)r.push(i-1);if(x<n-1)r.push(i+1);if(y>0)r.push(i-n);if(y<n-1)r.push(i+n);return r},
+  group(n,b,i){const c=b[i],st=[i],seen=new Set([i]),libs=new Set();while(st.length){const p=st.pop();for(const q of Go.nb(n,p)){if(b[q]==0)libs.add(q);else if(b[q]==c&&!seen.has(q)){seen.add(q);st.push(q)}}}return{stones:[...seen],libs:[...libs]}},
+  play(n,b,i,c,ko){if(b[i]!=0)return{ok:false,why:"Der Punkt ist besetzt."};if(i===ko)return{ok:false,why:"Ko: Dieser Zug stellt die vorige Stellung wieder her. Spiele erst woanders."};
+    const nb=b.slice();nb[i]=c;let cap=[];for(const q of Go.nb(n,i)){if(nb[q]==3-c){const g=Go.group(n,nb,q);if(g.libs.length==0)for(const t of g.stones){nb[t]=0;cap.push(t)}}}
+    const me=Go.group(n,nb,i);if(me.libs.length==0)return{ok:false,why:"Selbstmord ist verboten: Deine Gruppe hätte keine Freiheit mehr."};
+    let newKo=null;if(cap.length==1&&me.stones.length==1&&me.libs.length==1)newKo=cap[0];return{ok:true,board:nb,cap,ko:newKo}},
+  area(n,b){const seen=new Set();let sb=0,sw=0;const terr={};b.forEach(v=>{if(v==1)sb++;if(v==2)sw++});for(let i=0;i<b.length;i++){if(b[i]||seen.has(i))continue;const st=[i],reg=[i];seen.add(i);const bor=new Set();while(st.length){const p=st.pop();for(const q of Go.nb(n,p)){if(b[q]==0){if(!seen.has(q)){seen.add(q);st.push(q);reg.push(q)}}else bor.add(b[q])}}if(bor.size==1){const c=[...bor][0];reg.forEach(p=>terr[p]=c);if(c==1)sb+=reg.length;else sw+=reg.length}}return{black:sb,white:sw,terr}},
+  atariGroups(n,b,c){const seen=new Set(),o=[];for(let i=0;i<b.length;i++){if(b[i]!=c||seen.has(i))continue;const g=Go.group(n,b,i);g.stones.forEach(s=>seen.add(s));if(g.libs.length==1)o.push(g)}return o},
+  isEye(n,b,i,c){if(b[i])return false;if(!Go.nb(n,i).every(q=>b[q]==c))return false;const x=i%n,y=(i-x)/n;let bad=0,tot=0;[[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([a,d])=>{const Y=y+a,X=x+d;if(Y>=0&&Y<n&&X>=0&&X<n){tot++;if(b[Y*n+X]==3-c)bad++}});return tot==4?bad<=1:bad==0},
+  rate(n,b,c,ko,last,noise=0){const out=[],stones=b.filter(Boolean).length;for(let i=0;i<b.length;i++){if(b[i])continue;const r=Go.play(n,b,i,c,ko);if(!r.ok)continue;if(Go.isEye(n,b,i,c))continue;let sc=Math.random()*noise,why="Guter Formzug.";
+      const me=Go.group(n,r.board,i),before=Go.nb(n,i).filter(q=>b[q]==c).map(q=>Go.group(n,b,q).libs.length);
+      if(r.cap.length){sc+=100+20*r.cap.length;why=`Schlägt ${r.cap.length} Stein${r.cap.length>1?"e":""}.`}
+      if(before.includes(1)&&me.libs.length>=2){sc+=70;why="Rettet deine Gruppe aus dem Atari."}
+      if(me.libs.length==1&&!r.cap.length){sc-=60;why="Riskant, die Gruppe hätte nur eine Freiheit."}
+      const seenE=new Set();Go.nb(n,i).forEach(q=>{if(r.board[q]==3-c&&!seenE.has(q)){const g=Go.group(n,r.board,q);g.stones.forEach(s=>seenE.add(s));if(g.libs.length==1&&me.libs.length>=2){sc+=30+3*g.stones.length;if(!r.cap.length&&!before.includes(1))why="Setzt die gegnerische Gruppe ins Atari."}else if(g.libs.length==2)sc+=6}});
+      const x=i%n,y=(i-x)/n,line=Math.min(x,y,n-1-x,n-1-y);if(stones<n){if(n>=9&&(line==2||line==3)){sc+=8;if(sc<20)why="Eröffnung: Ecken und Seiten vor der Mitte."}if(line==0)sc-=10;if(line==1)sc-=3}else{if(line==0)sc-=2}
+      if(last!=null&&Go.nb(n,last).includes(i))sc+=4;
+      if(Go.nb(n,i).filter(q=>b[q]==c).length>=3)sc-=8;
+      out.push({i,sc,why})}return out.sort((p,q)=>q.sc-p.sc)}
+};
+const HOSHI={9:[2,4,6],13:[3,6,9],19:[3,9,15]};
+function goSvg(n,b,o={}){const d=40,S=d*(n+1),g=[];
+  g.push(s("rect",{width:S,height:S,rx:8,fill:"var(--wood)"}));
+  for(let i=0;i<n;i++){const p=d*(i+1);g.push(s("line",{x1:d,y1:p,x2:d*n,y2:p,stroke:"var(--wood-line)"}),s("line",{x1:p,y1:d,x2:p,y2:d*n,stroke:"var(--wood-line)"}))}
+  (HOSHI[n]||[]).forEach(y=>(HOSHI[n]).forEach(x=>g.push(s("circle",{cx:d*(x+1),cy:d*(y+1),r:4,fill:"var(--wood-line)"}))));
+  const xy=i=>[d*(i%n+1),d*(Math.floor(i/n)+1)];
+  const stone=(i,c,cls,op)=>{const[x,y]=xy(i);return s("circle",{cx:x,cy:y,r:18,fill:c==1?"var(--stone-b)":"var(--stone-w)",stroke:c==1?"#000":"#7A7A70","fill-opacity":op,class:cls?cls+" tb":null})};
+  (o.terr?Object.entries(o.terr):[]).forEach(([i,c])=>{const[x,y]=xy(+i);g.push(s("rect",{x:x-7,y:y-7,width:14,height:14,fill:c==1?"var(--stone-b)":"var(--stone-w)",stroke:"#555"}))});
+  b.forEach((v,i)=>{if(v)g.push(stone(i,v,i===o.last?"pop":null,o.dead&&o.dead.has(i)?.35:null))});
+  if(o.last!=null&&b[o.last]){const[x,y]=xy(o.last);g.push(s("circle",{cx:x,cy:y,r:7,fill:"none",stroke:b[o.last]==1?"#fff":"#000","stroke-width":2}))}
+  (o.ghost||[]).forEach(([i,c])=>g.push(stone(i,c,"fade")));
+  (o.warn||[]).forEach(i=>{const[x,y]=xy(i);g.push(s("circle",{cx:x,cy:y,r:20,fill:"none",stroke:"#E08A00","stroke-width":4}))});
+  (o.libs||[]).forEach(i=>{const[x,y]=xy(i);g.push(s("circle",{cx:x,cy:y,r:8,fill:"var(--accent)",class:"pulse"}))});
+  (o.hint!=null?[o.hint]:[]).forEach(i=>{const[x,y]=xy(i);g.push(s("circle",{cx:x,cy:y,r:17,fill:"none",stroke:"var(--accent)","stroke-width":4,"stroke-dasharray":"6 4",class:"pulse"}))});
+  (o.x||[]).forEach(i=>{const[x,y]=xy(i);g.push(s("path",{d:`M${x-11} ${y-11}L${x+11} ${y+11}M${x+11} ${y-11}L${x-11} ${y+11}`,stroke:"var(--red)","stroke-width":5,"stroke-linecap":"round"}))});
+  (o.nums||[]).forEach(([i,t])=>{const[x,y]=xy(i);g.push(s("text",{x,y:y+6,"text-anchor":"middle","font-size":17,"font-weight":700,fill:b[i]==1?"#fff":"#111"},t))});
+  if(o.click){const gh=s("circle",{r:18,fill:o.ghostColor==2?"var(--stone-w)":"var(--stone-b)","fill-opacity":.4,visibility:"hidden","pointer-events":"none"});g.push(gh);
+    for(let i=0;i<b.length;i++){const[x,y]=xy(i);g.push(s("rect",{x:x-20,y:y-20,width:40,height:40,fill:"transparent",style:"cursor:pointer",onclick:()=>o.click(i),onmouseenter(){if(!b[i]&&o.ghostColor&&matchMedia("(hover:hover)").matches){gh.setAttribute("cx",x);gh.setAttribute("cy",y);gh.setAttribute("visibility","visible")}else gh.setAttribute("visibility","hidden");o.hover&&o.hover(i)},onmouseleave(){gh.setAttribute("visibility","hidden");o.hover&&o.hover(null)}}))}}
+  return s("svg",{viewBox:`0 0 ${S} ${S}`,role:"img","aria-label":`Go-Brett ${n} mal ${n}`},g)}
+const ab=str=>str.replace(/\s/g,"").split("").map(c=>c=="b"?1:c=="w"?2:0);
+const L7=(...r)=>ab(r.join(""));
+const rc=(n,r,c)=>r*n+c;
+function goView(){const box=h("div",{class:"bw"}),pop=makePopup();let svg=null;box.append(pop.el);
+  return{el:box,pop,draw(n,b,o){const nx=goSvg(n,b,o);if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx},
+    info(n,b,i){if(!b[i]){pop.hide();return}const g=Go.group(n,b,i),col=b[i]==1?"Schwarz":"Weiß",y=Math.floor(i/n);pop.show([h("b",{},`${col}: ${g.stones.length} Stein${g.stones.length>1?"e":""}, ${g.libs.length} Freiheit${g.libs.length==1?"":"en"}`),h("p",{},g.libs.length==1?"Atari! Diese Gruppe wird im nächsten Zug geschlagen, wenn nichts geschieht.":g.libs.length==2?"Achtung: Nach einem weiteren gegnerischen Stein steht sie im Atari.":"Diese Gruppe ist im Moment nicht akut bedroht.")],y>=n/2)}}}
+function goStep(n,b,o={}){return t=>{const v=goView();t.append(v.el);v.draw(n,b,{...o,click:i=>v.info(n,b,i)})}}
+function goRules(root){const n=7,e=".......";
+  const one=L7(e,e,e,"...b...",e,e,e),two=L7(e,e,e,"...bb..",e,e,e);
+  const cap=L7(e,e,"...b...","..bw...","...b...",e,e);
+  const r=Go.play(n,cap,3*7+4,1,null);
+  const sui=L7(e,e,"...w...","..w.w..","...w...",e,e);
+  const ko=L7(e,e,"..bw...",".bw.w..","..bw...",e,e),k2=Go.play(n,ko,3*7+3,1,null);
+  const sc=L7(..."..b.w..,..b.w..,..b.w..,..b.w..,..b.w..,..b.w..,..b.w..".split(",")),ar=Go.area(n,sc);
+  const lb=(b,i)=>Go.group(n,b,i).libs;
+  const save=L7(e,e,"...b...","..bw...","...b...",e,e);
+  const twoEyes=L7(".b.bw..","bbbbw..","wwwww..",e,e,e,e);
+  const oneEye=L7(".bbbw..","bbbbw..","wwwww..",e,e,e,e);
+  const oneEyeR=Go.play(n,oneEye,0,2,null);
+  const three=L7("...bw..","bbbbw..","wwwww..",e,e,e,e);
+  const cut=L7(e,".b.....",e,".b.....",e,e,e);
+  // Leiter
+  const L9=9,ldr=Array(81).fill(0);[[3,3,2],[2,3,1],[3,2,1],[4,4,1]].forEach(([y,x,v])=>ldr[rc(9,y,x)]=v);
+  const seq=[[3,4,1],[4,3,2],[5,3,1],[4,2,2],[4,1,1],[5,2,2],[6,2,1],[5,1,2],[5,0,1],[6,1,2],[7,1,1],[6,0,2],[7,0,1]];
+  const at=k=>{let bb=ldr;for(let j=0;j<k;j++)bb=Go.play(9,bb,rc(9,seq[j][0],seq[j][1]),seq[j][2],null).board;return bb};
+  const nums=k=>seq.slice(0,k).filter(([y,x])=>at(k)[rc(9,y,x)]).map(([y,x],j)=>[rc(9,y,x),String(seq.findIndex(q=>q[0]==y&&q[1]==x)+1)]);
+  const netB=Array(81).fill(0);[[4,4,2],[3,4,1],[4,3,1],[2,5,1],[5,2,1]].forEach(([y,x,v])=>netB[rc(9,y,x)]=v);
+  const net2=Go.play(9,netB,rc(9,5,5),1,null).board;
+  stepper(root,[
+   {t:"Ein Stein und seine Freiheiten",d:"Schwarz beginnt, dann setzt ihr abwechselnd einen Stein auf einen freien Schnittpunkt. Gesetzte Steine ziehen nie weiter. Die rosa Punkte sind die Freiheiten: freie Nachbarpunkte waagrecht und senkrecht, diagonal zählt nicht.",tip:"Tippe in jeder Lektion auf einen Stein. Dann siehst du, wie viele Freiheiten seine Gruppe hat.",draw:goStep(n,one,{libs:lb(one,24),last:24})},
+   {t:"Verbundene Steine teilen Freiheiten",d:"Direkt verbundene Steine gleicher Farbe bilden eine Kette. Diese Kette hat sechs Freiheiten und kann nur als Ganzes geschlagen werden.",tip:"Verbundene Steine sind schwerer zu fangen als einzelne.",draw:goStep(n,two,{libs:lb(two,24)})},
+   {t:"Atari: noch eine Freiheit",d:"Der weiße Stein hat nur noch eine Freiheit. Diesen Zustand nennt man Atari. Schwarz kann ihn im nächsten Zug schlagen.",tip:"Prüfe vor jedem Zug, ob eine eigene Gruppe im Atari steht.",draw:goStep(n,cap,{libs:lb(cap,3*7+3)})},
+   {t:"Schlagen",d:"Schwarz setzt auf die letzte Freiheit. Der weiße Stein hat keine Freiheit mehr und wird vom Brett genommen.",draw:goStep(n,r.board,{last:25,ghost:[[24,2]]})},
+   {t:"Aus dem Atari retten",d:"Weiß könnte auf den rosa Punkt verlängern. Die Gruppe hätte dann mehr Freiheiten. Ob sich das lohnt, zeigt erst das Weiterzählen.",tip:"Retten lohnt sich nur, wenn die neue Gruppe nicht sofort wieder im Atari steht.",draw:goStep(n,save,{libs:lb(save,24)})},
+   {t:"Selbstmord ist verboten",d:"Schwarz darf nicht auf das rote Kreuz setzen, der Stein hätte sofort keine Freiheit. Das gilt in den meisten Regelwerken. Schlägt der Zug zugleich gegnerische Steine, ist er erlaubt, denn dadurch entsteht eine Freiheit.",draw:goStep(n,sui,{x:[24]})},
+   {t:"Ko, Ausgangslage",d:"Schwarz kann auf den freien Punkt in der Mitte setzen und damit den weißen Stein links davon schlagen.",draw:goStep(n,ko,{libs:[24]})},
+   {t:"Ko, das Wiederholungsverbot",d:"Schwarz hat geschlagen. Weiß darf nicht sofort auf das Kreuz zurück, sonst wäre die vorige Stellung wiederhergestellt. Weiß muss erst woanders spielen.",tip:"Der Zug woanders sollte eine echte Drohung sein, damit der Gegner antworten muss.",draw:goStep(n,k2.board,{x:[23],last:24})},
+   {t:"Zwei Augen: Die Gruppe lebt",d:"Die schwarze Gruppe umschließt zwei getrennte Punkte, die Augen. Weiß kann keinen davon besetzen, denn jeder Zug dort wäre Selbstmord. Diese Gruppe kann nie geschlagen werden.",tip:"Zwei Augen sind das wichtigste Ziel jeder eingeschlossenen Gruppe.",draw:goStep(n,twoEyes,{libs:[0,2]})},
+   {t:"Ein Auge: Die Gruppe stirbt",d:"Hier gibt es nur ein Auge. Weiß setzt hinein, nimmt der Gruppe damit die letzte Freiheit und schlägt sie. Das ist erlaubt, weil der Zug schlägt.",draw:goStep(n,oneEyeR.board,{last:0,ghost:oneEyeR.cap.map(i=>[i,1])})},
+   {t:"Drei in einer Reihe: der Schlüsselpunkt",d:"In drei freien Punkten entscheidet die Mitte. Spielt Schwarz dort, entstehen zwei Augen. Spielt Weiß dort, bleibt nur ein Auge.",tip:"Der Punkt, den dein Gegner braucht, ist oft auch dein bester Punkt.",draw:goStep(n,three,{hint:1})},
+   {t:"Verbinden und trennen",d:"Die beiden schwarzen Steine stehen mit einem Punkt Abstand. Spielt Schwarz dazwischen, sind sie verbunden. Spielt Weiß dazwischen, sind sie getrennt und einzeln leichter anzugreifen.",draw:goStep(n,cut,{hint:15})},
+   {t:"Leiter, der Anfang",d:"Weiß steht auf dem Stein in der Mitte. Schwarz setzt ihn mit 1 ins Atari. Weiß verlängert mit 2, doch nun hat die Kette wieder nur zwei Freiheiten.",tip:"Erst lesen, dann loslaufen. Ein weißer Stein auf dem Weg kann die Leiter brechen.",draw:goStep(9,at(2),{nums:nums(2)})},
+   {t:"Leiter, im Zickzack",d:"Schwarz setzt immer wieder ins Atari, Weiß läuft weiter. Die weiße Kette wächst, bekommt aber nie mehr als zwei Freiheiten.",draw:goStep(9,at(8),{nums:nums(8)})},
+   {t:"Leiter, am Brettrand",d:"Am Rand ist Schluss: Mit Zug 13 ist die gesamte Kette gefangen. Hier habe ich die Züge mit den Spielregeln nachgerechnet.",draw:goStep(9,at(13),{nums:nums(13),ghost:[]})},
+   {t:"Netz: fangen ohne Atari",d:"Hier würde sofortiges Atari den weißen Stein entkommen lassen. Der lockere Zug diagonal dahinter, am rosa Ring, fängt ihn trotzdem. Das habe ich per Zugsuche geprüft. In echten Partien hängt so etwas von den Steinen ringsum ab.",draw:goStep(9,net2,{hint:rc(9,5,5),last:rc(9,5,5)})},
+   {t:"Ende und Wertung",d:`Die Partie endet, wenn beide nacheinander passen. Chinesische Zählung: eigene Steine plus umschlossene Punkte, hier Schwarz ${ar.black}, Weiß ${ar.white}. Die mittlere Spalte gehört niemandem. Weiß bekommt als Ausgleich für den zweiten Zug Komi, in China 7,5, in Japan 6,5 Punkte. Weiß gewinnt also.`,tip:"Nicht jeden Stein retten. Gezählt wird Gebiet, nicht gefangene Einzelgefechte.",draw:goStep(n,sc,{terr:ar.terr})}
+  ],{key:"go-lesson"})}
+const GOP=[
+ {t:"Schlage den Stein",d:"Schwarz am Zug. Der weiße Stein steht im Atari.",n:7,c:1,b:L7(".......",".......","...b...","..bw...","...b...",".......","......."),kind:"cap",min:1,hint:"Zähle die Freiheiten des weißen Steins.",ok:"Richtig. Du besetzt seine letzte Freiheit."},
+ {t:"Schlage am Rand",d:"Am Rand hat ein Stein weniger Freiheiten.",n:7,c:1,b:L7("..bwb..","...b...".replace(/./g,"."),".......",".......",".......",".......","......."),kind:"cap",min:1,hint:"Der Stein hat nur eine Nachbarlinie frei: nach unten.",ok:"Richtig. Am Rand reichen drei Steine."},
+ {t:"Schlage in der Ecke",d:"In der Ecke hat ein Stein nur zwei Freiheiten.",n:7,c:1,b:L7("wb.....",".......",".......",".......",".......",".......","......."),kind:"cap",min:1,hint:"Die Ecke hat nur zwei Nachbarn.",ok:"Richtig. Darum sichert man Ecken mit wenigen Steinen."},
+ {t:"Schlage zwei Steine",d:"Beide weißen Steine bilden eine Kette.",n:7,c:1,b:L7(".......","..bb...",".bww...","..bb...",".......",".......","......."),kind:"cap",min:2,hint:"Die Kette hat nur noch einen freien Nachbarn.",ok:"Richtig. Eine Kette wird zusammen geschlagen."},
+ {t:"Rette deinen Stein",d:"Dein schwarzer Stein steht im Atari. Verlängere so, dass er mindestens zwei Freiheiten hat.",n:7,c:1,b:L7(".......","...w...","..wb...","...w...",".......",".......","......."),kind:"save",at:rc(7,2,3),hint:"Nur ein Nachbarpunkt ist frei.",ok:"Richtig. Jetzt hat die Kette drei Freiheiten."},
+ {t:"Lebe mit zwei Augen",d:"Schwarz am Zug. Sichere das Leben der Gruppe.",n:7,c:1,b:L7("...bw..","bbbbw..","wwwww..",".......",".......",".......","......."),kind:"pts",pts:[1],hint:"Teile den Raum in zwei getrennte Augen.",ok:"Richtig. Punkt 1 und 3 oben sind jetzt getrennte Augen."},
+ {t:"Töte die Gruppe",d:"Dieselbe Stellung, diesmal ist Weiß am Zug.",n:7,c:2,b:L7("...bw..","bbbbw..","wwwww..",".......",".......",".......","......."),kind:"pts",pts:[1],hint:"Der Schlüsselpunkt ist für beide Seiten derselbe.",ok:"Richtig. Schwarz kann nun keine zwei Augen mehr bilden."},
+ {t:"Beginne die Leiter",d:"Fange den weißen Stein. Schwarz am Zug, die Leiter läuft nach links unten.",n:9,c:1,b:(()=>{const a=Array(81).fill(0);[[3,3,2],[2,3,1],[3,2,1],[4,4,1]].forEach(([y,x,v])=>a[rc(9,y,x)]=v);return a})(),kind:"pts",pts:[rc(9,3,4)],hint:"Setze ihn so ins Atari, dass er zur Seite hin zum Rand läuft.",ok:"Richtig. Die Lektion „Leiter“ zeigt den ganzen Verlauf."},
+ {t:"Lege ein Netz",d:"Sofortiges Atari fängt den weißen Stein hier nicht. Spiele den lockeren Fangzug.",n:9,c:1,b:(()=>{const a=Array(81).fill(0);[[4,4,2],[3,4,1],[4,3,1],[2,5,1],[5,2,1]].forEach(([y,x,v])=>a[rc(9,y,x)]=v);return a})(),kind:"pts",pts:[rc(9,5,5)],hint:"Der Punkt liegt diagonal hinter dem weißen Stein.",ok:"Richtig. Weiß kann nicht mehr entkommen."}
+];
+GOP[1].b[rc(7,1,3)]=0;
+function goPuzzles(root){const done=Store.get("go-puz",[]);let cur=Math.min(done.length,GOP.length-1),b,msg,state="",hint=null,last=null,ghost=[];
+  const nav=h("div"),title=h("h3"),desc=h("p"),st=h("div",{class:"status"}),v=goView();
+  const hb=h("button",{onclick(){const p=GOP[cur];if(state=="ok")return;st.textContent=p.hint;st.style.color=""}},"Hinweis");
+  const nx=h("button",{class:"pri",onclick(){go(Math.min(cur+1,GOP.length-1))}},"Nächste Aufgabe");
+  const rs=h("button",{onclick(){go(cur)}},"Nochmal");
+  function go(i){cur=i;const p=GOP[i];b=p.b.slice();state="";hint=null;last=null;ghost=[];st.textContent=`${p.c==1?"Schwarz":"Weiß"} ist am Zug.`;st.style.color="";draw()}
+  function click(i){if(state=="ok")return;const p=GOP[cur];const r=Go.play(p.n,b,i,p.c,null);if(!r.ok){st.textContent=r.why;st.style.color="var(--bad)";return}
+    let good=false;if(p.kind=="cap")good=r.cap.length>=p.min;if(p.kind=="pts")good=p.pts.includes(i);if(p.kind=="save")good=Go.group(p.n,r.board,p.at).libs.length>=2;
+    if(good){b=r.board;last=i;ghost=r.cap.map(t=>[t,3-p.c]);state="ok";st.textContent=p.ok;st.style.color="var(--ok)";if(!done.includes(cur)){done.push(cur);Store.set("go-puz",done)}}else{st.textContent="Das löst die Aufgabe nicht. Versuch es noch einmal.";st.style.color="var(--bad)"}draw()}
+  function draw(){const p=GOP[cur];nav.replaceChildren(puzzleNav(GOP,done,cur,go));title.textContent=p.t;desc.textContent=p.d;v.draw(p.n,b,{click,last,ghost,hint,ghostColor:p.c});nx.disabled=cur==GOP.length-1}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},nav,h("div",{class:"count"},`${done.length} von ${GOP.length} gelöst, wird in diesem Browser gespeichert`),title,desc,st,h("div",{class:"ctrl"},hb,rs,nx))));go(cur)}
+function goPlay(root){
+  const init=(n,mode,opp)=>({n,mode,opp,b:Array(n*n).fill(0),c:1,ko:null,last:null,pass:0,over:false,hist:[],caps:[0,0],win:null});
+  let S=Store.get("go-game",null)||init(9,"voll","mittel");let ghost=[],dead=new Set(),hint=null,msg="",busy=false;
+  const v=goView(),st=h("div",{class:"status"}),info=h("div",{class:"note"}),coach=h("div",{class:"coach"}),scoreBox=h("div",{class:"note"});
+  const sel=(id,label,opts,val,cb)=>h("label",{class:"sel"},label,h("select",{id,onchange:e=>cb(e.target.value)},opts.map(([k,t])=>{const o=h("option",{value:k},t);if(k==String(val))o.selected=true;return o})));
+  const reset=(n,mode,opp)=>{ver++;S=init(n,mode,opp);ghost=[];dead=new Set();hint=null;busy=false;msg="";draw()};
+  const nSel=sel("go-size","Brett",[["7","7×7"],["9","9×9"],["13","13×13"],["19","19×19"]],S.n,x=>reset(+x,S.mode,S.opp));
+  const mSel=sel("go-mode","Spielart",[["voll","Normale Partie"],["schlag","Erster Schlag gewinnt"]],S.mode,x=>reset(S.n,x,S.opp));
+  const oSel=sel("go-opp","Gegner",[["leicht","Computer, leicht"],["mittel","Computer, mittel"],["mensch","Zweite Person"]],S.opp,x=>reset(S.n,S.mode,x));
+  const passB=h("button",{onclick(){if(S.over||busy)return;doPass()}},"Passen");
+  const undo=h("button",{onclick(){if(busy||!S.hist.length)return;let k=S.opp!="mensch"?2:1;let p;while(k-->0&&S.hist.length)p=S.hist.pop();Object.assign(S,p);S.over=false;S.win=null;ghost=[];hint=null;dead=new Set();msg="Zug zurückgenommen.";draw()}},"Zug zurück");
+  const hintB=h("button",{onclick(){if(S.over||busy)return;const m=Go.rate(S.n,S.b,S.c,S.ko,S.last,0)[0];if(!m||m.sc<-15){msg="Hinweis: Kein sinnvoller Zug in Sicht, Passen ist hier vertretbar.";hint=null}else{hint=m.i;msg="Hinweis: "+m.why+" Das ist eine einfache Faustregel, kein Profi-Urteil."}draw()}},"Hinweis");
+  const newB=h("button",{onclick:()=>reset(S.n,S.mode,S.opp)},"Neu");
+  const coachT=toggle("Coach","go-coach",true,()=>draw());
+  function snap(){return{b:S.b,c:S.c,ko:S.ko,last:S.last,pass:S.pass,caps:S.caps.slice()}}
+  function doPass(){S.hist.push(snap());S.pass++;S.ko=null;S.c=3-S.c;hint=null;ghost=[];msg=`${S.c==1?"Weiß":"Schwarz"} passt.`;if(S.pass>=2){S.over=true;msg="Beide haben gepasst. Tippe tote Steine an, damit sie nicht mitzählen."}draw();autoBot()}
+  function place(i){const r=Go.play(S.n,S.b,i,S.c,S.ko);if(!r.ok){msg=r.why;draw();return false}S.hist.push(snap());if(S.hist.length>200)S.hist.shift();ghost=r.cap.map(t=>[t,3-S.c]);S.b=r.board;S.ko=r.ko;S.last=i;S.pass=0;S.caps[S.c-1]+=r.cap.length;msg=r.cap.length?`${S.c==1?"Schwarz":"Weiß"} schlägt ${r.cap.length} Stein${r.cap.length>1?"e":""}.`:"";if(S.mode=="schlag"&&r.cap.length){S.over=true;S.win=S.c}S.c=3-S.c;hint=null;draw();autoBot();return true}
+  function click(i){if(busy)return;if(S.over){if(S.mode=="voll"&&S.b[i]){const g=Go.group(S.n,S.b,i);const on=!dead.has(i);g.stones.forEach(t=>on?dead.add(t):dead.delete(t));draw()}return}if(S.opp!="mensch"&&S.c!=1)return;place(i)}
+  function autoBot(){if(S.over||S.opp=="mensch"||S.c!=2)return;busy=true;draw();const vv=ver;sleep(450).then(()=>{if(vv!==ver)return;busy=false;const m=Go.rate(S.n,S.b,2,S.ko,S.last,S.opp=="leicht"?35:5)[0];if(!m||m.sc<-15||(S.pass>0&&m.sc<25))doPass();else place(m.i)})}
+  function coachText(){if(S.over||S.c==0)return"";const me=S.c,mine=Go.atariGroups(S.n,S.b,me),op=Go.atariGroups(S.n,S.b,3-me);if(mine.length)return`Deine Gruppe mit ${mine[0].stones.length} Stein${mine[0].stones.length>1?"en":""} steht im Atari. Retten, gegenschlagen oder bewusst aufgeben?`;if(op.length)return"Eine gegnerische Gruppe steht im Atari, du kannst sie schlagen.";if(S.b.filter(Boolean).length<4&&S.n>=9)return"Früh in der Partie: Ecken zuerst, dann Seiten, dann Mitte.";return"Zähle die Freiheiten deiner schwächsten Gruppe, bevor du angreifst."}
+  function draw(){const on=Store.get("go-coach",true),warn=on?[...Go.atariGroups(S.n,S.b,1),...Go.atariGroups(S.n,S.b,2)].flatMap(g=>g.stones):[];
+    let ar=null,bb=S.b;if(S.over&&S.mode=="voll"){bb=S.b.map((x,i)=>dead.has(i)?0:x);ar=Go.area(S.n,bb)}
+    v.draw(S.n,S.b,{click,last:S.last,ghost,x:S.ko!=null?[S.ko]:[],warn,hint,terr:ar&&ar.terr,dead,ghostColor:S.over||(S.opp!="mensch"&&S.c==2)?0:S.c,hover(i){if(i!=null&&S.b[i]&&Store.get("go-coach",true))v.info(S.n,S.b,i);else v.pop.hide()}});
+    if(S.over){if(S.mode=="schlag"){st.textContent=`${S.win==1?"Schwarz":"Weiß"} gewinnt das Schlagspiel.`;scoreBox.textContent=""}else{const w=ar.white+7.5;st.textContent=(ar.black>w?"Schwarz":"Weiß")+" gewinnt.";scoreBox.textContent=`Chinesische Zählung: Schwarz ${ar.black}, Weiß ${ar.white} plus 7,5 Komi = ${String(w).replace(".",",")}. Tippe tote Steine an, um sie aus der Zählung zu nehmen.`}}
+    else{st.textContent=busy?"Der Computer überlegt …":(S.c==1?"Schwarz":"Weiß")+" ist am Zug.";scoreBox.textContent=`Geschlagen: Schwarz ${S.caps[0]}, Weiß ${S.caps[1]}.`}
+    info.textContent=msg;coach.textContent=on?coachText():"";coach.hidden=!on||!coach.textContent;passB.disabled=S.over;hintB.disabled=S.over;undo.disabled=!S.hist.length;
+    Store.set("go-game",{...S,hist:S.hist.slice(-8)})}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,scoreBox,info,coach,h("div",{class:"ctrl"},passB,hintB,undo,newB,coachT),h("div",{class:"ctrl"},nSel,mSel,oSel),h("p",{class:"note"},"Du spielst gegen den Computer immer Schwarz. Er folgt einfachen Faustregeln und ist bewusst schwach, also gut zum Üben, aber kein Maßstab. Zum Einstieg empfiehlt der US-Go-Verband das Schlagspiel auf 7×7 oder 9×9. Orange Ringe markieren Gruppen im Atari. Die Partie wird in diesem Browser gespeichert."))));draw();autoBot()}
+const GOTIPS=[
+ {t:"Die ersten Partien",items:[["Mit dem Schlagspiel beginnen","Wer zuerst einen Stein schlägt, gewinnt. So übst du Freiheiten und Atari, bevor Gebiet dazukommt. Der US-Go-Verband empfiehlt dafür 7×7 oder 9×9.","S"],["Kleines Brett statt 19×19","Auf 9×9 ist eine Partie schnell zu Ende, und du siehst viele Enden. Das große Brett kommt später.","W"],["Freiheiten zählen","Falsch gezählte Freiheiten gehören zu den häufigsten Gründen für verlorene Kämpfe. Zähle laut mit, auch wenn es langsam ist.","W"],["Langsam spielen","Ein altes Go-Sprichwort sagt sinngemäß: Wer schnell spielt, verliert schnell.","W"]]},
+ {t:"Eröffnung und Form",items:[["Ecke, Seite, Mitte","Ecken lassen sich mit den wenigsten Steinen sichern, danach folgen die Seiten und zuletzt die Mitte.","W"],["Verbunden bleiben","Halte eigene Steine zusammen und trenne die des Gegners. Getrennte Gruppen sind leichter anzugreifen.","W"],["Abstand statt Kleben","Wer jeden Stein direkt berührt, macht den Gegner oft nur stärker. Druck aus etwas Abstand wirkt meist besser.","W"],["Leere Dreiecke meiden","Drei eigene Steine im Winkel mit leerem vierten Punkt sind oft ineffizient.","W"]]},
+ {t:"Kampf",items:[["Zwei Augen zuerst","Eine Gruppe mit zwei echten Augen kann nicht geschlagen werden. Sichere das, bevor du anderswo angreifst.","S"],["Der Punkt des Gegners","Der wichtige Punkt deines Gegners ist oft auch deiner, zum Beispiel die Mitte von drei freien Punkten.","W"],["Steine loslassen","Nicht jede Gruppe ist zu retten. Gib kleine Gruppen auf, wenn du dafür anderswo mehr gewinnst.","W"],["Leitern lesen","Prüfe vorher, ob ein Stein auf dem Weg die Leiter bricht. Eine gescheiterte Leiter kostet meist viel.","W"]]},
+ {t:"Im Park zuschauen",intro:"Das sind meine Überlegungen, keine belegten Regeln.",items:[["Erst kurz fragen","Frag vor dem Mitspielen, ob es um Geld geht. Einzelne Berichte aus Hanoi beschreiben bei Cờ tướng im Park Wetten abseits des Bretts.","W"],["Regeln vorher klären","Zählweise und Komi können abweichen. Kläre vor der Partie, was gilt.","W"]]}
+];
+
+/* ---------- CỜ TƯỚNG ---------- */
+const XQI={
+ G:{vn:"Tướng",de:"General",val:"unersetzlich",rule:"Ein Punkt waagrecht oder senkrecht, nur im Palast. Darf dem gegnerischen General nie frei auf einer Linie gegenüberstehen.",tip:"In der Ausgangsstellung steht er am sichersten. Ziehe ihn nicht ohne Grund."},
+ A:{vn:"Sĩ",de:"Berater",val:"2",rule:"Ein Punkt diagonal, nur im Palast.",tip:"Schützt den General. Berater und Elefanten verbunden halten, aber die Angriffsfiguren nicht vernachlässigen."},
+ E:{vn:"Tượng",de:"Elefant",val:"2",rule:"Genau zwei Punkte diagonal. Darf nicht springen und nicht über den Fluss.",tip:"Nicht unnötig an den Rand ziehen. Eine Figur auf dem Zwischenpunkt sperrt den Zug."},
+ H:{vn:"Mã",de:"Pferd",val:"4",rule:"Ein Punkt gerade, dann einen diagonal nach außen. Eine Figur direkt neben ihm sperrt den Weg.",tip:"Früh freie Bahn schaffen. Im Palast engt es den eigenen General ein."},
+ R:{vn:"Xe",de:"Wagen",val:"9",rule:"Beliebig weit waagrecht oder senkrecht, nicht über Figuren.",tip:"Die stärkste Figur. Früh auf offene Linien bringen und nicht isoliert in Gefahr stellen."},
+ C:{vn:"Pháo",de:"Kanone",val:"4 bis 4,5",rule:"Zieht wie der Wagen. Schlägt nur, wenn genau eine Figur dazwischensteht.",tip:"Stark auf der Mittellinie. Im Endspiel braucht sie eine Figur als Schirm."},
+ S:{vn:"Tốt",de:"Soldat",val:"1, nach dem Fluss 2",rule:"Ein Punkt vorwärts. Nach dem Fluss auch seitwärts. Nie zurück, keine Umwandlung.",tip:"Im Endspiel wird er viel wertvoller. Nicht leichtfertig tauschen."}
+};
+const XQ={
+  glyph:{r:{G:"帥",A:"仕",E:"相",H:"傌",R:"俥",C:"炮",S:"兵"},b:{G:"將",A:"士",E:"象",H:"馬",R:"車",C:"砲",S:"卒"}},
+  init(){const b=Array.from({length:10},()=>Array(9).fill(null)),back="RHEAGAEHR";for(let c=0;c<9;c++){b[0][c]={t:back[c],c:"b"};b[9][c]={t:back[c],c:"r"}}[1,7].forEach(c=>{b[2][c]={t:"C",c:"b"};b[7][c]={t:"C",c:"r"}});[0,2,4,6,8].forEach(c=>{b[3][c]={t:"S",c:"b"};b[6][c]={t:"S",c:"r"}});return b},
+  from(list){const b=Array.from({length:10},()=>Array(9).fill(null));list.forEach(([c,t,y,x])=>b[y][x]={t,c});return b},
+  inb:(y,x)=>y>=0&&y<10&&x>=0&&x<9,
+  pal:(c,y,x)=>x>=3&&x<=5&&(c=="b"?y>=0&&y<=2:y>=7&&y<=9),
+  pseudo(b,y,x){const p=b[y][x],m=[];if(!p)return m;const add=(a,d)=>{if(XQ.inb(a,d)&&(!b[a][d]||b[a][d].c!=p.c))m.push([a,d])};
+    const O=[[1,0],[-1,0],[0,1],[0,-1]],D=[[1,1],[1,-1],[-1,1],[-1,-1]];
+    switch(p.t){
+    case"G":O.forEach(([a,d])=>{if(XQ.pal(p.c,y+a,x+d))add(y+a,x+d)});break;
+    case"A":D.forEach(([a,d])=>{if(XQ.pal(p.c,y+a,x+d))add(y+a,x+d)});break;
+    case"E":D.forEach(([a,d])=>{const Y=y+2*a,X=x+2*d;if(XQ.inb(Y,X)&&!b[y+a][x+d]&&(p.c=="b"?Y<=4:Y>=5))add(Y,X)});break;
+    case"H":O.forEach(([a,d])=>{if(XQ.inb(y+a,x+d)&&!b[y+a][x+d]){if(a){add(y+2*a,x+1);add(y+2*a,x-1)}else{add(y+1,x+2*d);add(y-1,x+2*d)}}});break;
+    case"R":O.forEach(([a,d])=>{let Y=y+a,X=x+d;while(XQ.inb(Y,X)){if(b[Y][X]){if(b[Y][X].c!=p.c)m.push([Y,X]);break}m.push([Y,X]);Y+=a;X+=d}});break;
+    case"C":O.forEach(([a,d])=>{let Y=y+a,X=x+d,sc=false;while(XQ.inb(Y,X)){if(!sc){if(b[Y][X])sc=true;else m.push([Y,X])}else if(b[Y][X]){if(b[Y][X].c!=p.c)m.push([Y,X]);break}Y+=a;X+=d}});break;
+    case"S":{const f=p.c=="r"?-1:1;add(y+f,x);if(p.c=="r"?y<=4:y>=5){add(y,x+1);add(y,x-1)}break}}
+    return m},
+  gen(b,c){for(let y=0;y<10;y++)for(let x=3;x<6;x++){const p=b[y][x];if(p&&p.t=="G"&&p.c==c)return[y,x]}return null},
+  inCheck(b,c){const g=XQ.gen(b,c);if(!g)return true;const o=c=="r"?"b":"r",og=XQ.gen(b,o);
+    if(og&&og[1]==g[1]){let clear=true;for(let y=Math.min(g[0],og[0])+1;y<Math.max(g[0],og[0]);y++)if(b[y][g[1]])clear=false;if(clear)return true}
+    for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(p&&p.c==o&&XQ.pseudo(b,y,x).some(([a,d])=>a==g[0]&&d==g[1]))return true}return false},
+  apply(b,y,x,a,d){const n=b.map(r=>r.slice());n[a][d]=n[y][x];n[y][x]=null;return n},
+  legal(b,y,x){const p=b[y][x];return XQ.pseudo(b,y,x).filter(([a,d])=>!XQ.inCheck(XQ.apply(b,y,x,a,d),p.c))},
+  all(b,c){const r=[];for(let y=0;y<10;y++)for(let x=0;x<9;x++)if(b[y][x]&&b[y][x].c==c)XQ.legal(b,y,x).forEach(([a,d])=>r.push([y,x,a,d]));return r},
+  attacked(b,y,x){const p=b[y][x],o=p.c=="r"?"b":"r";for(let a=0;a<10;a++)for(let d=0;d<9;d++){const q=b[a][d];if(q&&q.c==o&&XQ.pseudo(b,a,d).some(([e,f])=>e==y&&f==x))return true}return false},
+  guarded(b,y,x){const p=b[y][x],n=b.map(r=>r.slice());n[y][x]={t:p.t,c:p.c=="r"?"b":"r"};for(let a=0;a<10;a++)for(let d=0;d<9;d++){const q=n[a][d];if(q&&q.c==p.c&&XQ.pseudo(n,a,d).some(([e,f])=>e==y&&f==x))return true}return false},
+  VAL:{G:10000,R:90,C:45,H:40,E:20,A:20,S:10},
+  eval(b,c){let s2=0;for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(!p)continue;let v=XQ.VAL[p.t];if(p.t=="S"&&(p.c=="r"?y<=4:y>=5))v+=10+(x>=3&&x<=5?4:0);if(p.t=="H"||p.t=="C"||p.t=="R")v+=Math.max(0,3-Math.abs(x-4));s2+=p.c==c?v:-v}return s2},
+  search(b,c,dep,al,be){if(dep==0)return XQ.eval(b,c);const o=c=="r"?"b":"r";let best=-1e6,any=false;for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(!p||p.c!=c)continue;for(const[a,d]of XQ.pseudo(b,y,x)){any=true;const t=b[a][d];if(t&&t.t=="G")return 50000+dep;b[a][d]=p;b[y][x]=null;const v=-XQ.search(b,o,dep-1,-be,-al);b[y][x]=p;b[a][d]=t;if(v>best)best=v;if(best>al)al=best;if(al>=be)return best}}return any?best:-40000},
+  best(b,c,dep,noise=0){const o=c=="r"?"b":"r";let list=XQ.all(b,c),bm=null,bs=-1e9;list=list.map(m=>({m,cap:b[m[2]][m[3]]?1:0})).sort((p,q)=>q.cap-p.cap);for(const{m}of list){const[y,x,a,d]=m,n=XQ.apply(b,y,x,a,d);let v=XQ.all(n,o).length==0?90000:-XQ.search(n,o,Math.max(dep-1,0),-1e6,1e6);v+=Math.random()*noise;if(v>bs){bs=v;bm=m}}return bm},
+  coord:(y,x)=>"abcdefghi"[x]+(9-y),
+  note(b,y,x,a,d){const p=b[y][x],q=b[a][d];return`${XQI[p.t].vn} ${XQ.coord(y,x)}${q?"×":"→"}${XQ.coord(a,d)}`}
+};
+function xqSvg(b,o={}){const d=44,W=d*10,H=d*11,g=[],P=(y,x)=>[d*(x+1),d*(y+1)];const labels=Store.get("xq-labels",true);
+  g.push(s("rect",{width:W,height:H,rx:8,fill:"var(--wood)"}));const li=(a,b2,c,e)=>{const[x1,y1]=P(a,b2),[x2,y2]=P(c,e);g.push(s("line",{x1,y1,x2,y2,stroke:"var(--wood-line)"}))};
+  for(let y=0;y<10;y++)li(y,0,y,8);li(0,0,9,0);li(0,8,9,8);for(let x=1;x<8;x++){li(0,x,4,x);li(5,x,9,x)}
+  li(0,3,2,5);li(0,5,2,3);li(7,3,9,5);li(7,5,9,3);
+  g.push(s("text",{x:W/2,y:d*5.66,"text-anchor":"middle","font-size":17,fill:"var(--wood-line)","font-family":"var(--body)"},"Fluss · sông"));
+  if(o.coords!==false){for(let x=0;x<9;x++)g.push(s("text",{x:d*(x+1),y:H-8,"text-anchor":"middle","font-size":12,fill:"var(--wood-line)"},"abcdefghi"[x]));for(let y=0;y<10;y++)g.push(s("text",{x:9,y:d*(y+1)+4,"font-size":12,fill:"var(--wood-line)"},9-y))}
+  if(o.lastFrom){const[a,c]=P(...o.lastFrom);g.push(s("circle",{cx:a,cy:c,r:7,fill:"none",stroke:"var(--accent)","stroke-width":2}))}
+  (o.moves||[]).forEach(([y,x])=>{const[a,c]=P(y,x);g.push(s("circle",{cx:a,cy:c,r:b[y][x]?22:8,fill:b[y][x]?"none":"var(--accent)",stroke:"var(--accent)","stroke-width":3,class:"pulse"}))});
+  for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=b[y][x];if(!p)continue;const[a,c]=P(y,x),col=p.c=="r"?"#B3202A":"#14201C",sel=o.sel&&o.sel[0]==y&&o.sel[1]==x,warn=(o.warn||[]).some(([e,f])=>e==y&&f==x);
+    g.push(s("g",{class:(o.last&&o.last[0]==y&&o.last[1]==x?"pop ":"")+"tb"},warn?s("circle",{cx:a,cy:c,r:23,fill:"none",stroke:"#E08A00","stroke-width":4}):null,s("circle",{cx:a,cy:c,r:20,fill:"#F5ECD6",stroke:sel?"var(--accent)":col,"stroke-width":sel?4:2}),s("text",{x:a,y:labels?c+3:c+7,"text-anchor":"middle","font-size":labels?18:22,fill:col,"font-weight":700},XQ.glyph[p.c][p.t]),labels?s("text",{x:a,y:c+15,"text-anchor":"middle","font-size":10,fill:col,"font-weight":600,"font-family":"var(--body)"},XQI[p.t].vn):null))}
+  if(o.arrow){const[y,x,a,e]=o.arrow,[x1,y1]=P(y,x),[x2,y2]=P(a,e);g.push(s("line",{x1,y1,x2,y2,stroke:"var(--accent)","stroke-width":5,"stroke-linecap":"round","stroke-dasharray":"8 7",class:"pulse"}),s("circle",{cx:x2,cy:y2,r:9,fill:"var(--accent)"}))}
+  (o.x||[]).forEach(([y,x])=>{const[a,c]=P(y,x);g.push(s("path",{d:`M${a-9} ${c-9}L${a+9} ${c+9}M${a+9} ${c-9}L${a-9} ${c+9}`,stroke:"var(--red)","stroke-width":4,"stroke-linecap":"round"}))});
+  for(let y=0;y<10;y++)for(let x=0;x<9;x++){const[a,c]=P(y,x);g.push(s("rect",{x:a-22,y:c-22,width:44,height:44,fill:"transparent",style:o.click||b[y][x]?"cursor:pointer":null,onclick:o.click?()=>o.click(y,x):null,onmouseenter:o.hover?()=>o.hover(y,x):null,onmouseleave:o.hover?()=>o.hover(null):null}))}
+  return s("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":"Cờ-tướng-Brett"},g)}
+function xqInfo(p,y){const i=XQI[p.t];return[h("div",{class:"pophead"},h("span",{class:"popg",style:`color:${p.c=="r"?"#B3202A":"#14201C"}`},XQ.glyph[p.c][p.t]),h("div",{},h("b",{},`${i.vn} · ${i.de}`),h("div",{class:"note"},`${p.c=="r"?"Rot":"Schwarz"}, Richtwert ${i.val}`))),h("p",{},i.rule),h("p",{class:"note"},"Tipp: "+i.tip)]}
+function xqView(){const box=h("div",{class:"bw"}),pop=makePopup();box.append(pop.el);let svg=null,pinned=null,lastB=null;
+  const showP=(b,y,x)=>{if(!Store.get("xq-pop",true)){pop.hide();return}if(y==null||!b[y][x]){if(pinned&&b[pinned[0]][pinned[1]])pop.show(xqInfo(b[pinned[0]][pinned[1]]),pinned[0]>=5);else pop.hide();return}pop.show(xqInfo(b[y][x]),y>=5)};
+  return{el:box,pop,pin(y,x){pinned=y==null?null:[y,x];if(lastB)showP(lastB,y,x)},draw(b,o={}){lastB=b;const nx=xqSvg(b,{...o,hover:matchMedia("(hover:hover)").matches?(y,x)=>showP(b,y,x):null});if(svg)svg.replaceWith(nx);else box.prepend(nx);svg=nx}}}
+function xqStep(b,sel,extra={}){return t=>{const v=xqView();let s0=sel,mv=sel?XQ.pseudo(b,sel[0],sel[1]):[];const rd=()=>v.draw(b,{sel:s0,moves:mv,...extra,click(y,x){if(b[y][x]){s0=[y,x];mv=XQ.pseudo(b,y,x);v.pin(y,x)}else{s0=null;mv=[];v.pin(null)}rd()}});t.append(v.el);rd();if(sel&&b[sel[0]][sel[1]])v.pin(sel[0],sel[1])}}
+function xqToggles(cb){return[toggle("Namen auf Figuren","xq-labels",true,cb),toggle("Pop-ups mit Regeln","xq-pop",true,cb)]}
+function xqRules(root){const demo=(list,y,x,t,d,tip,extra)=>({t,d,tip,draw:xqStep(XQ.from(list),[y,x],extra)});
+  const i0=XQ.init(),op1=XQ.apply(i0,7,1,7,4),op2=XQ.apply(op1,0,1,2,2);
+  stepper(root,[
+   {t:"Brett und Ziel",d:"Figuren stehen auf den Schnittpunkten. Jede Seite hat 16 Figuren, Rot beginnt in den meisten modernen Turnieren. Ziel ist es, den gegnerischen General mattzusetzen.",tip:"Tippe auf jede Figur: Du bekommst Name, Regel, Richtwert und erlaubte Züge. Am Computer reicht es, mit der Maus darauf zu zeigen.",draw:xqStep(i0,null)},
+   demo([["r","G",8,4]],8,4,"General, Tướng",XQI.G.rule,XQI.G.tip),
+   demo([["r","A",8,4]],8,4,"Berater, Sĩ",XQI.A.rule,XQI.A.tip),
+   demo([["r","E",7,4]],7,4,"Elefant, Tượng",XQI.E.rule,XQI.E.tip),
+   demo([["r","E",7,4],["b","S",6,3]],7,4,"Elefant wird blockiert","Steht eine Figur auf dem Zwischenpunkt, ist diese Richtung gesperrt. Tippe den Soldaten an, um seine Züge zu sehen.",null),
+   demo([["r","H",5,4]],5,4,"Pferd, Mã",XQI.H.rule,XQI.H.tip),
+   demo([["r","H",5,4],["r","S",4,4]],5,4,"Pferd wird blockiert","Das Pferd springt nicht. Eine Figur direkt neben ihm sperrt die beiden Züge in diese Richtung.","Einen gegnerischen Bein-Punkt zu besetzen, kann ein Pferd ausschalten."),
+   demo([["r","R",5,4],["b","S",2,4],["r","S",5,7]],5,4,"Wagen, Xe",XQI.R.rule,XQI.R.tip),
+   demo([["r","C",7,4],["r","S",4,4],["b","H",1,4]],7,4,"Kanone, Pháo",XQI.C.rule+" Hier schlägt sie das Pferd über den eigenen Soldaten.",XQI.C.tip),
+   demo([["r","S",6,4]],6,4,"Soldat, Tốt, vor dem Fluss","Zieht einen Punkt vorwärts, nie zurück.",XQI.S.tip),
+   demo([["r","S",3,4]],3,4,"Soldat nach dem Fluss","Jenseits des Flusses darf er auch seitwärts ziehen. Eine Umwandlung gibt es nicht.",null),
+   {t:"Fliegender General",d:"Die Generale dürfen sich nicht ohne Figur dazwischen auf einer Linie gegenüberstehen. Der rote General dürfte hier nicht auf das Kreuz ziehen.",tip:"Das hilft beim Angriff: Der eigene General kann eine Linie für den Gegner sperren.",draw:t=>{const b=XQ.from([["r","G",9,3],["b","G",0,4]]);xqStep(b,[9,3],{x:[[9,4]],})(t)}},
+   {t:"Schach und Matt",d:"Bedroht eine Figur den General, ist das Schach, auf Vietnamesisch wohl „chiếu“. Du musst sofort reagieren: ziehen, dazwischenstellen oder schlagen. Geht nichts davon, ist er matt.",draw:xqStep(XQ.from([["r","R",0,8],["r","R",1,0],["b","G",0,4],["r","G",9,3]]),[0,8])},
+   {t:"Patt ist eine Niederlage",d:"Schwarz ist am Zug, steht nicht im Schach, hat aber keinen legalen Zug. Anders als im westlichen Schach verliert Schwarz damit.",tip:"Im Endspiel kannst du den Gegner bewusst in diese Lage zwingen.",draw:xqStep(XQ.from([["b","G",0,3],["r","R",5,4],["r","R",1,8],["r","G",9,5]]),null)},
+   {t:"Häufigste Eröffnung: Zentralkanone",d:"Rot zieht eine Kanone auf die Mittellinie, auf Vietnamesisch oft „Pháo đầu“. Sie zielt auf den Mittelsoldaten und bindet Berater und Elefanten.",tip:"Die schwarze Kanone gegen den Mittelsoldaten zu tauschen, gilt für Anfänger als Falle.",draw:xqStep(op1,[7,4])},
+   {t:"Häufige Antwort: Pferd vor",d:"Schwarz entwickelt ein Pferd und deckt den Mittelsoldaten. Kommt das zweite Pferd dazu, entsteht die Screen-Horse-Verteidigung.",tip:"Früh Wagen, Pferde und Kanonen entwickeln. Hin- und Herziehen kostet nur Zeit.",draw:xqStep(op2,[2,2])}
+  ],{key:"xq-lesson",extra:h("div",{class:"ctrl"},xqToggles(()=>route()))})}
+function xqFig(root){const keys=Object.keys(XQI);let k=Store.get("xq-fig","R"),pos=null,blockers=false,b;
+  const v=xqView(),list=h("div",{class:"figs"}),st=h("div",{class:"status"});
+  const startPos={G:[9,4],A:[8,4],E:[7,4],H:[5,4],R:[5,4],C:[6,4],S:[5,4]};
+  const mkB=()=>{const[y,x]=pos,L=[["r",k,y,x]];const a=XQ.from(L);if(blockers){let n=0;while(n<7){const Y=rnd(10),X=rnd(9);if(a[Y][X]||XQ.gen(a,"r")&&false)continue;a[Y][X]={t:"S",c:rnd(2)?"b":"r"};n++}}return a};
+  function pick(t){k=t;Store.set("xq-fig",k);pos=startPos[t];b=mkB();draw();v.pin(pos[0],pos[1])}
+  function click(y,x){const mv=XQ.pseudo(b,pos[0],pos[1]);if(mv.some(([a,d])=>a==y&&d==x)){b=XQ.apply(b,pos[0],pos[1],y,x);pos=[y,x];st.textContent=`${XQI[k].vn} zieht nach ${XQ.coord(y,x)}.`;v.pin(y,x);draw()}else if(b[y][x]&&!(y==pos[0]&&x==pos[1])){v.pop.show(xqInfo(b[y][x]),y>=5);st.textContent="Dorthin darf die Figur nicht ziehen."}else st.textContent="Tippe einen rosa Punkt an."}
+  function draw(){list.replaceChildren(...keys.map(t=>h("button",{class:"fig "+(t==k?"on":""),onclick:()=>pick(t)},h("span",{class:"popg",style:"color:#B3202A"},XQ.glyph.r[t]),h("span",{},h("b",{},XQI[t].vn),h("small",{},`${XQI[t].de} · ${XQI[t].val}`)))));v.draw(b,{sel:pos,moves:XQ.pseudo(b,pos[0],pos[1]),click})}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},h("h3",{},"Figur ausprobieren"),list,st,h("div",{class:"ctrl"},h("button",{onclick(){blockers=true;b=mkB();draw();st.textContent="Neue Hindernisse. Rot lässt sich nicht schlagen, schwarze Soldaten schon."}},"Hindernisse streuen"),h("button",{onclick(){blockers=false;pick(k)}},"Zurücksetzen")),h("p",{class:"note"},"Hier gibt es keinen Gegner, die Figur zieht frei nach ihren Regeln. Die Richtwerte sind ungefähr: Quellen geben die Kanone mit 4 oder 4,5 an, die Stellung kann alles ändern."))));pick(k)}
+const XQP=[
+ {t:"Zwei Wagen",d:"Rot am Zug. Setze matt.",hint:"Ein Wagen sperrt schon die zweite Reihe. Der andere gibt Schach auf der Grundreihe.",list:[["b","G",0,4],["r","R",1,0],["r","R",5,8],["r","G",9,3]],sol:"R 5,8 → 0,8"},
+ {t:"Doppelkanone",d:"Rot am Zug. Setze matt.",hint:"Eine Kanone wird zum Schirm für die andere, beide auf der Mittellinie.",list:[["b","G",0,4],["b","A",0,3],["b","A",0,5],["r","C",2,4],["r","C",6,8],["r","G",9,3]],sol:"C 6,8 → 6,4"},
+ {t:"Pferd und Wagen",d:"Rot am Zug. Setze matt.",hint:"Die Berater versperren dem General selbst den Weg. Das Pferd muss von schräg unten Schach geben.",list:[["b","G",0,4],["b","A",0,3],["b","A",0,5],["r","R",1,8],["r","H",4,4],["r","G",9,3]],sol:"H 4,4 → 2,3"},
+ {t:"Soldat und Wagen",d:"Rot am Zug. Setze matt.",hint:"Soldaten dürfen jenseits des Flusses seitwärts. Der gedeckte Soldat kann nicht geschlagen werden.",list:[["b","G",0,4],["r","S",1,3],["r","S",2,4],["r","R",5,3],["r","R",5,5],["r","G",9,3]],sol:"S 1,3 → 0,3"},
+ {t:"Der General hilft",d:"Rot am Zug. Setze matt. Beachte den roten General.",hint:"Der schwarze General kann nicht auf die e-Linie, dort stünde er deinem General gegenüber.",list:[["b","G",0,3],["r","R",5,8],["r","G",9,4]],sol:"R 5,8 → 5,3"},
+ {t:"Pferdegabel",d:"Rot am Zug. Greife mit dem Pferd beide schwarzen Figuren gleichzeitig an.",hint:"Das Pferd muss von einem Punkt aus Wagen und Kanone erreichen.",list:[["b","G",0,5],["b","R",2,2],["b","C",3,5],["r","H",6,4],["r","G",9,3]],kind:"fork",targets:[[2,2],[3,5]]},
+ {t:"Schuss über den Schirm",d:"Rot am Zug. Gewinne das schwarze Pferd, das ungedeckt steht.",hint:"Die Kanone schlägt über genau eine Figur.",list:[["b","G",0,5],["b","H",2,1],["b","S",5,1],["r","C",7,1],["r","G",9,3]],kind:"cap",target:[2,1]}
+];
+function xqPuzzles(root){const done=Store.get("xq-puz",[]);let cur=Math.min(done.length,XQP.length-1),b,sel=null,moves=[],state="",arrow=null;
+  const v=xqView(),nav=h("div"),title=h("h3"),desc=h("p"),st=h("div",{class:"status"});
+  const hb=h("button",{onclick(){st.textContent=XQP[cur].hint;st.style.color=""}},"Hinweis");
+  const rs=h("button",{onclick(){go(cur)}},"Nochmal");
+  const nx=h("button",{class:"pri",onclick(){go(Math.min(cur+1,XQP.length-1))}},"Nächste Aufgabe");
+  function go(i){cur=i;b=XQ.from(XQP[i].list);sel=null;moves=[];state="";arrow=null;st.textContent="Rot ist am Zug.";st.style.color="";v.pin(null);draw()}
+  function test(n,a,d){const p=XQP[cur];if(p.kind=="fork"){const at=XQ.pseudo(n,a,d);return n[a][d].t=="H"&&p.targets.every(([e,f])=>at.some(([q,r])=>q==e&&r==f))}if(p.kind=="cap")return a==p.target[0]&&d==p.target[1];return XQ.all(n,"b").length==0&&XQ.inCheck(n,"b")}
+  function click(y,x){if(state=="ok")return;if(sel&&moves.some(([a,d])=>a==y&&d==x)){const n=XQ.apply(b,sel[0],sel[1],y,x);if(test(n,y,x)){b=n;state="ok";sel=null;moves=[];v.pin(null);const p=XQP[cur];st.textContent=p.kind=="fork"?"Richtig. Eine der beiden Figuren fällt.":p.kind=="cap"?"Richtig. Das Pferd ist gewonnen.":"Matt. Schwarz hat keinen legalen Zug mehr.";st.style.color="var(--ok)";if(!done.includes(cur)){done.push(cur);Store.set("xq-puz",done)}draw();return}st.textContent="Erlaubter Zug, aber er löst die Aufgabe nicht.";st.style.color="var(--bad)";sel=null;moves=[];draw();return}
+    if(b[y][x]&&b[y][x].c=="r"){sel=[y,x];moves=XQ.legal(b,y,x);v.pin(y,x)}else{if(b[y][x])v.pin(y,x);sel=null;moves=[]}draw()}
+  function draw(){const p=XQP[cur];nav.replaceChildren(puzzleNav(XQP,done,cur,go));title.textContent=p.t;desc.textContent=p.d;v.draw(b,{sel,moves,click,arrow});nx.disabled=cur==XQP.length-1}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},nav,h("div",{class:"count"},`${done.length} von ${XQP.length} gelöst, wird in diesem Browser gespeichert`),title,desc,st,h("div",{class:"ctrl"},hb,rs,nx),h("h3",{style:"margin-top:8px"},"Zugtrainer"),xqTrainer())));go(cur)}
+function xqTrainer(){let k,b,pos,streak=0;const box=h("div",{class:"side"}),q=h("p"),mini=h("div",{class:"bw small"});
+  const places={G:[[9,3],[8,4],[7,5]],A:[[8,4],[9,3],[7,5]],E:[[7,4],[9,2],[5,6]],H:[[5,4],[6,2],[3,6]],R:[[5,4],[8,1]],C:[[6,4],[7,2]],S:[[6,4],[4,2],[2,6]]};
+  const v=xqView();mini.append(v.el);
+  function nw(){const ks=Object.keys(XQI);k=ks[rnd(ks.length)];pos=places[k][rnd(places[k].length)];b=XQ.from([["r",k,pos[0],pos[1]]]);for(let n=0;n<6;){const Y=rnd(10),X=rnd(9);if(b[Y][X])continue;b[Y][X]={t:"S",c:rnd(2)?"b":"r"};n++}q.textContent=`Wohin darf ${XQI[k].vn} (${XQI[k].de}) ziehen? Tippe einen Punkt an. Serie: ${streak}`;v.pin(null);v.draw(b,{sel:pos,click});if(!XQ.pseudo(b,pos[0],pos[1]).length)nw()}
+  function click(y,x){const mv=XQ.pseudo(b,pos[0],pos[1]);if(mv.some(([a,d])=>a==y&&d==x)){streak++;nw()}else{streak=0;q.textContent=`Nicht erlaubt. ${XQI[k].rule} Rosa siehst du alle Ziele, tippe eines an.`;v.draw(b,{sel:pos,moves:mv,click})}}
+  box.append(q,mini);nw();return box}
+function xqPlay(root){
+  const init=()=>({b:XQ.init(),c:"r",last:null,lastFrom:null,over:false,hist:[],log:[],level:Store.get("xq-level","2"),bot:true});
+  let S=Store.get("xq-game",null)||init(),sel=null,moves=[],busy=false,arrow=null,msg="";
+  const v=xqView(),st=h("div",{class:"status"}),coach=h("div",{class:"coach"}),log=h("div",{class:"log"}),capt=h("div",{class:"note"}),info=h("div",{class:"note"});
+  const lv=h("select",{id:"xq-level",onchange(e){S.level=e.target.value;Store.set("xq-level",S.level);save()}},[["1","Anfänger (1 Zug, zufällig)"],["2","Mittel (2 Züge)"],["3","Stärker (3 Züge)"]].map(([k,t])=>{const o=h("option",{value:k},t);if(k==S.level)o.selected=true;return o}));
+  const bt=h("button",{class:S.bot?"on":"",onclick(){S.bot=!S.bot;bt.classList.toggle("on",S.bot);bt.textContent=S.bot?"Gegner: Computer":"Gegner: zweite Person";draw();maybeBot()}},S.bot?"Gegner: Computer":"Gegner: zweite Person");
+  const rs=h("button",{onclick(){ver++;const l=S.level,bo=S.bot;S=init();S.level=l;S.bot=bo;sel=null;moves=[];busy=false;arrow=null;msg="";v.pin(null);draw()}},"Neu");
+  const un=h("button",{onclick(){if(busy||!S.hist.length)return;let k=S.bot?2:1,p;while(k-->0&&S.hist.length){p=S.hist.pop();S.log.pop()}Object.assign(S,p);S.over=false;sel=null;moves=[];arrow=null;msg="Zug zurückgenommen.";v.pin(null);draw()}},"Zug zurück");
+  const hb=h("button",{onclick(){if(S.over||busy)return;const m=XQ.best(S.b,S.c,3);arrow=m;const[y,x,a,d]=m,t=S.b[a][d],n=XQ.apply(S.b,y,x,a,d);const op=S.c=="r"?"b":"r";let w=`${XQI[S.b[y][x].t].vn} nach ${XQ.coord(a,d)}`;if(!XQ.all(n,op).length)w+=": Das beendet die Partie.";else if(t)w+=`: gewinnt ${XQI[t.t].vn}.`;else if(XQ.inCheck(n,op))w+=": gibt Schach.";else w+=": bester Materialwert in 3 Halbzügen Vorausschau.";msg="Hinweis: "+w+" Das ist eine einfache Suche, kein Großmeister-Urteil.";draw()}},"Hinweis");
+  const coachT=toggle("Coach","xq-coach",true,()=>draw());
+  function save(){Store.set("xq-game",{...S,hist:S.hist.slice(-6),log:S.log.slice(-60)})}
+  function snap(){return{b:S.b,c:S.c,last:S.last,lastFrom:S.lastFrom}}
+  function moveTo(y,x,a,d){S.hist.push(snap());S.log.push(XQ.note(S.b,y,x,a,d));S.b=XQ.apply(S.b,y,x,a,d);S.last=[a,d];S.lastFrom=[y,x];S.c=S.c=="r"?"b":"r";sel=null;moves=[];arrow=null;msg="";v.pin(null);if(!XQ.all(S.b,S.c).length)S.over=true;draw();maybeBot()}
+  function maybeBot(){if(S.over||!S.bot||S.c!="b")return;busy=true;draw();const vv=ver;sleep(350).then(()=>{if(vv!==ver)return;const lvl=+S.level,m=lvl==1?XQ.best(S.b,"b",1,35):lvl==2?XQ.best(S.b,"b",2,4):XQ.best(S.b,"b",3,2);busy=false;moveTo(...m)})}
+  function click(y,x){if(S.over||busy)return;if(sel&&moves.some(([a,d])=>a==y&&d==x)){moveTo(sel[0],sel[1],y,x);return}const p=S.b[y][x];if(p&&p.c==S.c&&!(S.bot&&S.c=="b")){sel=[y,x];moves=XQ.legal(S.b,y,x);v.pin(y,x);if(!moves.length)msg=`${XQI[p.t].vn} hat gerade keinen legalen Zug.`;else msg=""}else{if(p)v.pin(y,x);else v.pin(null);sel=null;moves=[]}draw()}
+  function threats(){const out=[];for(let y=0;y<10;y++)for(let x=0;x<9;x++){const p=S.b[y][x];if(p&&p.c==S.c&&p.t!="G"&&XQ.attacked(S.b,y,x)&&!XQ.guarded(S.b,y,x))out.push([y,x])}return out}
+  function draw(){const on=Store.get("xq-coach",true),th=on&&!S.over?threats():[];const ch=XQ.inCheck(S.b,S.c),g=XQ.gen(S.b,S.c);const warn=[...th];if(ch&&g)warn.push(g);
+    v.draw(S.b,{sel,moves,click,last:S.last,lastFrom:S.lastFrom,warn,arrow});
+    const n=S.c=="r"?"Rot":"Schwarz";st.textContent=S.over?`${ch?"Matt":"Patt"}: ${n} hat keinen legalen Zug und verliert.`:busy?"Der Computer überlegt …":`${n} ist am Zug${ch?", Schach!":"."}`;
+    let co="";if(on&&!S.over&&!busy){if(ch)co="Schach. Prüfe drei Wege: General ziehen, dazwischenstellen oder die angreifende Figur schlagen.";else if(th.length){const[y,x]=th[0];co=`Dein ${XQI[S.b[y][x].t].vn} auf ${XQ.coord(y,x)} ist angegriffen und nicht gedeckt.`}else if(S.log.length<6)co="Eröffnung: Wagen, Pferde und Kanonen früh ins Spiel bringen, den General in Ruhe lassen.";else co="Frage vor jedem Zug: Was droht der letzte Zug des Gegners?"}
+    coach.textContent=co;coach.hidden=!co;info.textContent=msg;
+    const missing=c=>{const cnt={G:1,A:2,E:2,H:2,R:2,C:2,S:5};S.b.flat().forEach(p=>{if(p&&p.c==c)cnt[p.t]--});return Object.entries(cnt).flatMap(([t,k])=>Array(Math.max(k,0)).fill(XQI[t].vn))};
+    capt.textContent=`Rot hat geschlagen: ${missing("b").join(", ")||"nichts"}. Schwarz hat geschlagen: ${missing("r").join(", ")||"nichts"}.`;
+    log.replaceChildren(...S.log.map((m,i)=>h("span",{},`${i+1}. ${m}`)));log.scrollTop=log.scrollHeight;un.disabled=!S.hist.length;save()}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},v.el),h("div",{class:"side"},st,coach,info,h("div",{class:"ctrl"},hb,un,rs),h("label",{class:"sel"},"Stärke",lv),h("div",{class:"ctrl"},bt,coachT,...xqToggles(()=>draw())),capt,log,h("p",{class:"note"},"Du spielst Rot. Figur antippen, dann ein Ziel wählen, nur erlaubte Züge werden gezeigt. Orange Ringe markieren ungedeckte, angegriffene Figuren und den General im Schach. Sonderregeln gegen Dauerschach sind nicht eingebaut, sie unterscheiden sich je nach Regelwerk. Die Partie wird in diesem Browser gespeichert."))));draw();maybeBot()}
+const XQTIPS=[
+ {t:"Eröffnung",items:[["Hauptfiguren früh entwickeln","Wagen, Pferde und Kanonen zuerst auf gute Posten bringen.","W"],["Nichts verstopfen","Figuren sollen sich nicht gegenseitig den Weg nehmen. Zieh den Soldaten vor dem Pferd vor, wenn es dadurch frei wird.","W"],["General in Ruhe lassen","In der Ausgangsstellung steht er am sichersten.","W"],["Kanone nicht allein vorschicken","Eine einsam vorgeprellte Kanone wird leicht eingeschlossen.","W"],["Nicht hin und her ziehen","Züge ohne Ziel kosten Entwicklung.","W"],["Kanone für Pferd meist nicht tauschen","In der Eröffnung gilt die Kanone als etwas wertvoller.","W"]]},
+ {t:"Mittelspiel",items:[["Zuerst die Drohung lesen","Vor deinem Plan kommt die Frage, was der letzte gegnerische Zug will. Ein angebotener Soldat kann eine Falle sein.","W"],["Wagen schützen","Stell den Wagen nicht isoliert oder angreifbar hin.","W"],["Material ist nicht alles","Gute Stellung oder Matt können ein Opfer rechtfertigen.","W"],["Zwischenzug","Spiele vor dem Tausch eine Drohung, auf die der Gegner antworten muss.","W"],["Pferd raus aus der Palastmitte","Dort engt es den eigenen General ein und lässt sich fesseln.","W"]]},
+ {t:"Taktik",items:[["Gabel","Ein Pferd greift zwei Figuren zugleich an.","S"],["Fesselung","Eine Figur kann nicht ziehen, weil dahinter eine wertvollere steht.","S"],["Schirm der Kanone","Rechne mit jeder Figur auf der Linie der Kanone. Ein Zug kann einen Schirm schaffen oder wegnehmen.","S"]]},
+ {t:"Endspiel",items:[["Soldaten werden wertvoll","Schütze deine und greife gegnerische an.","W"],["General als Figur nutzen","Er kontrolliert Linien und schränkt den gegnerischen General ein.","W"],["Wartezug","Ein ruhiger Zug zwingt den Gegner, seine Stellung zu schwächen. Patt verliert hier.","W"],["Kanone braucht Schirm","Im Endspiel dient oft der eigene Palast als Schirm.","W"]]},
+ {t:"Im Park",intro:"Einzelne Aussagen, keine Regeln. Die vietnamesischen Begriffe habe ich nicht in einer Lehrquelle nachgeprüft.",items:[["Wörter zum Mithören","chiếu: Schach. chiếu bí: Matt. Pháo đầu: Zentralkanone.","W"],["Vorsicht bei Einsätzen","Ein Augenzeugenbericht aus Hanoi beschreibt die Parkpartien als Wettspiel, bei dem die Wetten abseits des Parks abgeschlossen werden. Spiele nicht um Geld, wenn du die Lage nicht kennst.","W"],["Hausregeln klären","Dauerschach und Wiederholung regeln Tische unterschiedlich. Frag vorher nach.","W"]]}
+];
+
+/* ---------- CỜ GÁNH ---------- */
+const GA={
+  id:(r,c)=>r*5+c,
+  dirs(i){const r=Math.floor(i/5),c=i%5,d=[[0,1],[1,0]];if((r+c)%2==0)d.push([1,1],[1,-1]);return d},
+  nb(i){const r=Math.floor(i/5),c=i%5,o=[];GA.dirs(i).forEach(([a,b])=>{[[a,b],[-a,-b]].forEach(([p,q])=>{const R=r+p,C=c+q;if(R>=0&&R<5&&C>=0&&C<5)o.push(R*5+C)})});return o},
+  init(){const b=Array(25).fill(0);[0,1,2,3,4,9,14,5].forEach(i=>b[i]=2);[20,21,22,23,24,19,10,15].forEach(i=>b[i]=1);return b},
+  move(b,from,to){const n=b.slice(),me=n[from],op=3-me;n[from]=0;n[to]=me;const fl=[];const r=Math.floor(to/5),c=to%5;
+    GA.dirs(to).forEach(([a,d])=>{const R1=r+a,C1=c+d,R2=r-a,C2=c-d;if(R1<0||R1>4||C1<0||C1>4||R2<0||R2>4||C2<0||C2>4)return;const x=R1*5+C1,y=R2*5+C2;if(n[x]==op&&n[y]==op){fl.push(x,y)}});
+    const ganh=fl.length;fl.forEach(i=>n[i]=me);
+    const seen=new Set(),vay=[];for(let i=0;i<25;i++){if(n[i]!=op||seen.has(i))continue;const st=[i],g=[i];seen.add(i);let free=false;while(st.length){const p=st.pop();GA.nb(p).forEach(q=>{if(n[q]==0)free=true;else if(n[q]==op&&!seen.has(q)){seen.add(q);st.push(q);g.push(q)}})}if(!free)vay.push(...g)}
+    vay.forEach(i=>n[i]=me);return{board:n,ganh,vay:vay.length,flipped:[...fl,...vay]}},
+  moves(b,c){const m=[];for(let i=0;i<25;i++)if(b[i]==c)GA.nb(i).forEach(q=>{if(!b[q])m.push([i,q])});return m}
+};
+function gaSvg(b,o={}){const d=64,S=d*6,g=[],P=i=>[d*(i%5+1),d*(Math.floor(i/5)+1)];g.push(s("rect",{width:S,height:S,rx:8,fill:"var(--wood)"}));
+  for(let i=0;i<25;i++){const[x,y]=P(i),r=Math.floor(i/5),c=i%5;GA.dirs(i).forEach(([a,e])=>{const R=r+a,C=c+e;if(R<5&&C>=0&&C<5){const[X,Y]=P(R*5+C);g.push(s("line",{x1:x,y1:y,x2:X,y2:Y,stroke:"var(--wood-line)","stroke-width":2}))}})}
+  (o.moves||[]).forEach(i=>{const[x,y]=P(i);g.push(s("circle",{cx:x,cy:y,r:10,fill:"var(--accent)",class:"pulse"}))});
+  b.forEach((v,i)=>{if(!v)return;const[x,y]=P(i);g.push(s("circle",{cx:x,cy:y,r:23,fill:v==1?"var(--stone-b)":"var(--stone-w)",stroke:i===o.sel?"var(--accent)":(v==1?"#000":"#777"),"stroke-width":i===o.sel?5:1.5,class:(o.flip||[]).includes(i)?"flip tb":i===o.last?"pop tb":null}))});
+  if(o.click)for(let i=0;i<25;i++){const[x,y]=P(i);g.push(s("rect",{x:x-32,y:y-32,width:64,height:64,fill:"transparent",style:"cursor:pointer",onclick:()=>o.click(i)}))}
+  return s("svg",{viewBox:`0 0 ${S} ${S}`,role:"img","aria-label":"Cờ-gánh-Brett"},g)}
+const G5=(...r)=>ab(r.join(""));
+function gaRules(root){
+  const a=G5(".....","..w..",".....","..w..",".....");a[2*5+1]=1;
+  const ra=GA.move(a,11,12);
+  const a4=G5("w.w..",".....","w.w..",".....",".....");a4[5+2]=1;
+  const r4=GA.move(a4,7,6);
+  const v0=G5("w.b..","bb...",".....",".....",".....");
+  const rv=GA.move(v0,2,1);
+  stepper(root,[
+   {t:"Aufstellung",d:"Das Brett hat 25 Schnittpunkte, jede Seite beginnt mit 8 Steinen am Rand. Die genaue Aufteilung der Randpunkte und das Diagonalmuster nennt meine Quelle nicht, diese Darstellung ist also eine Annahme.",draw:t=>t.append(gaSvg(GA.init()))},
+   {t:"Ziehen",d:"Ihr zieht abwechselnd einen eigenen Stein einen Punkt weit auf einen freien Nachbarpunkt, entlang der Linien. Rosa sind die möglichen Ziele.",draw:t=>{const b=Array(25).fill(0);b[12]=1;t.append(gaSvg(b,{sel:12,moves:GA.nb(12)}))}},
+   {t:"Gánh, vor dem Zug",d:"Schwarz will zwischen die beiden weißen Steine ziehen, die auf einer Linie liegen.",draw:t=>t.append(gaSvg(a,{sel:11,moves:[12]}))},
+   {t:"Gánh, einklemmen",d:"Steht dein Stein nach deinem Zug zwischen zwei gegnerischen auf einer Linie, wechseln beide die Farbe. Das gilt nur für den eigenen Zug: Wer selbst dazwischenzieht, klemmt ein, statt eingeklemmt zu werden.",draw:t=>t.append(gaSvg(ra.board,{flip:ra.flipped,last:12}))},
+   {t:"Mehrfaches Gánh",d:`Ein einziger Zug kann mehrere Linien zugleich treffen. Hier wechseln ${r4.flipped.length} Steine die Farbe. Die Quelle nennt das „chầu“ und zählt bis zu 4 oder 6 Steine.`,draw:t=>{const b=G5("w.w..","b....","w.w..",".....",".....");const r=GA.move(b,5,6);t.append(gaSvg(r.board,{flip:r.flipped,last:6}))}},
+   {t:"Vây, umzingeln",d:"Kann ein gegnerischer Stein nicht mehr ziehen, wechselt er ebenfalls die Farbe. Meine Quelle spricht von einem Stein. Hier im Spiel gilt das für jede zusammenhängende Gruppe ohne freien Nachbarpunkt, das ist meine Auslegung.",draw:t=>t.append(gaSvg(rv.board,{flip:rv.flipped,last:1}))},
+   {t:"Spielende",d:"Gewonnen hat, wer alle Steine auf seine Farbe gebracht hat, also am Ende 16 Steine besitzt. In der Praxis nimmt man dafür Steine mit zwei Farbseiten.",draw:t=>{const b=G5("bbbbb","b...b","b...b","b...b","bbbbb");t.append(gaSvg(b))}}
+  ]);}
+function gaPlay(root){let b=GA.init(),c=1,sel=null,flip=[],last=null,bot=true,over=false,busy=false;
+  const stage=h("div",{class:"stage"}),st=h("div",{class:"status"}),info=h("div",{class:"note"});
+  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person"}},"Gegner: Computer");
+  const rs=h("button",{onclick(){ver++;b=GA.init();c=1;sel=null;flip=[];last=null;over=false;busy=false;draw()}},"Neu");
+  function apply(from,to){const r=GA.move(b,from,to);b=r.board;flip=r.flipped;last=to;sel=null;c=3-c;if(!b.includes(c)||!GA.moves(b,c).length)over=true;draw();if(!over&&bot&&c==2)botMove()}
+  async function botMove(){busy=true;const v=ver;await sleep(700);if(v!==ver)return;let best,bs=-1;shuffle(GA.moves(b,2)).forEach(m=>{const k=GA.move(b,m[0],m[1]).flipped.length;if(k>bs){bs=k;best=m}});busy=false;apply(best[0],best[1])}
+  function click(i){if(over||busy)return;if(sel!=null&&GA.nb(sel).includes(i)&&!b[i]){apply(sel,i);return}sel=b[i]==c?i:null;draw()}
+  function draw(){stage.replaceChildren(gaSvg(b,{click,sel,flip,last,moves:sel!=null?GA.nb(sel).filter(i=>!b[i]):[]}));const nb=b.filter(x=>x==1).length,nw=b.filter(x=>x==2).length;st.textContent=over?(nb>nw?"Schwarz":"Weiß")+" gewinnt.":(c==1?"Schwarz":"Weiß")+" ist am Zug.";info.textContent=`Schwarz ${nb}, Weiß ${nw}.`}
+  root.append(h("div",{class:"game"},stage,h("div",{class:"side"},st,info,h("div",{class:"ctrl"},bt,rs),h("p",{class:"note"},"Der Computer nimmt den Zug mit den meisten Umfärbungen. Die Zusatzregel „mở“ (ein Zug, der den Gegner zum Einklemmen zwingt) wird nicht erzwungen, weil meine Quelle sie nicht genau genug beschreibt."))));draw()}
+
+/* ---------- Ô ĂN QUAN ---------- */
+function oaqRender(p,o={}){const box=h("div",{class:"oboard"});
+  const pit=(i,cls,gr)=>{const v=p[i],kids=[];if(v.big)kids.push(h("i",{class:"big"}));for(let k=0;k<Math.min(v.s,18);k++)kids.push(h("i"));
+    const el=h("button",{class:`pit ${cls} ${o.act===i?"act":""} ${o.cap===i?"cap":""} ${o.pick&&o.pick.includes(i)?"pick":""}`,style:gr,disabled:o.pick&&!o.pick.includes(i),"aria-label":`Feld mit ${v.s} Steinen${v.big?" und Mandarinstein":""}`,onclick:o.click?()=>o.click(i):null},kids,h("span",{},v.big?(v.s?v.s+"+M":"M"):v.s));
+    if(!o.click)el.disabled=true;return el};
+  box.append(pit(0,"m","grid-column:1;grid-row:1/3"));[1,2,3,4,5].forEach((i,k)=>box.append(pit(i,"",`grid-column:${k+2};grid-row:1`)));box.append(pit(6,"m r","grid-column:7;grid-row:1/3"));[11,10,9,8,7].forEach((i,k)=>box.append(pit(i,"",`grid-column:${k+2};grid-row:2`)));return box}
+const OQ={
+  init:()=>{const p=Array.from({length:12},()=>({s:5,big:0}));p[0]={s:0,big:1};p[6]={s:0,big:1};return p},
+  isM:i=>i==0||i==6,
+  empty:v=>v.s==0&&!v.big,
+  val:v=>v.s+v.big*10,
+  side:i=>i>=7?0:i>=1&&i<=5?1:-1,
+  *sow(p,start,dir){let cur=start;const w=i=>(i+dir+12)%12;while(true){let hand=p[cur].s;p[cur].s=0;yield{act:cur,type:"pick"};while(hand>0){cur=w(cur);p[cur].s++;hand--;yield{act:cur,type:"drop"}}const n=w(cur);if(OQ.isM(n)){yield{type:"end",why:"Das nächste Feld ist ein Mandarinfeld, der Zug endet."};return 0}
+      if(!OQ.empty(p[n])){cur=n;continue}
+      let gain=0,e=n;while(true){const m=w(e);if(OQ.empty(p[m]))break;const v=OQ.val(p[m]);gain+=v;p[m]={s:0,big:0};yield{cap:m,type:"cap",v};const a=w(m);if(OQ.isM(a)||!OQ.empty(p[a]))break;e=a}
+      yield{type:"end",why:gain?`Gefangen: ${gain} Punkte.`:"Zwei leere Felder hintereinander, der Zug endet."};return gain}}
+};
+function oaqRules(root){
+  const base=()=>OQ.init();
+  const pos=(f)=>{const p=base();f(p);return p};
+  stepper(root,[
+   {t:"Aufbau",d:"Zehn kleine Felder mit je 5 Steinen, an den Enden je ein Mandarinfeld mit einem großen Stein (alternativ zehn kleinen). Jede Seite gehört zu einem Spieler. Wer beginnt, wird per Schere-Stein-Papier bestimmt.",draw:t=>t.append(oaqRender(base()))},
+   {t:"Verteilen",d:"Nimm alle Steine aus einem Feld deiner Seite und lege sie einzeln in die nächsten Felder, die Richtung wählst du. Die Mandarinfelder zählen beim Verteilen mit.",draw:t=>{const p=pos(q=>{q[9].s=0;[8,7,6,5,4].forEach(i=>q[i].s++)});t.append(oaqRender(p,{act:4}))}},
+   {t:"Weiterverteilen",d:"Ist das nächste Feld gefüllt, nimmst du dessen Steine auf und verteilst weiter. So kann ein Zug viele Felder durchlaufen.",draw:t=>{const p=pos(q=>{q[9].s=0;[8,7,6,5,4].forEach(i=>q[i].s++)});t.append(oaqRender(p,{act:3}))}},
+   {t:"Fangen",d:"Ist das nächste Feld leer, gewinnst du alle Steine des Felds dahinter. Folgt danach wieder ein leeres Feld und dann ein gefülltes, geht es in vielen Spielweisen weiter. So ist es auch hier im Spiel umgesetzt.",draw:t=>{const p=pos(q=>{q[8].s=0;q[10].s=3});t.append(oaqRender(p,{act:9,cap:7}))}},
+   {t:"Zug endet",d:"Sind die nächsten zwei Felder leer oder folgt ein leeres Mandarinfeld, ist der Gegner dran. Ein gefülltes Mandarinfeld darfst du nach verbreiteter Spielweise nicht aufnehmen, die Quelle sagt das nicht ausdrücklich.",draw:t=>{const p=pos(q=>{q[8].s=0;q[7].s=0});t.append(oaqRender(p,{act:9}))}},
+   {t:"Seite leer",d:"Sind alle deine Felder leer, legst du aus deinem Gewinn je einen Stein auf deine fünf Felder. Hast du zu wenig, leihst du beim Gegner und gibst es bei der Schlusszählung zurück.",draw:t=>{const p=pos(q=>{[7,8,9,10,11].forEach(i=>q[i].s=1)});t.append(oaqRender(p))}},
+   {t:"Spielende",d:"Sind beide Mandarinsteine gefangen, endet das Spiel und jeder bekommt die Steine auf seiner Seite. Es gewinnt, wer mehr Punkte hat. Ein Mandarinstein zählt 10, nach anderer Angabe 5 kleine Steine, hier im Spiel 10.",draw:t=>{const p=pos(q=>{q[0].big=0;q[6].big=0;q[1].s=2;q[2].s=0;q[3].s=1;q[4].s=0;q[5].s=0;q[7].s=0;q[8].s=4;q[9].s=0;q[10].s=1;q[11].s=0});t.append(oaqRender(p))}}
+  ])}
+function oaqPlay(root){let p=OQ.init(),turn=0,sc=[0,0],debt=[0,0],busy=false,over=false,bot=true,chosen=null,fx={},msg="Du spielst unten. Wähle ein Feld und danach die Richtung.";
+  const stage=h("div",{class:"stage"}),st=h("div",{class:"status"}),info=h("div",{class:"note"});
+  const dirs=h("div",{class:"ctrl"});
+  const bt=h("button",{class:"on",onclick(){bot=!bot;bt.classList.toggle("on",bot);bt.textContent=bot?"Gegner: Computer":"Gegner: zweite Person"}},"Gegner: Computer");
+  const rs=h("button",{onclick(){ver++;p=OQ.init();turn=0;sc=[0,0];debt=[0,0];busy=false;over=false;chosen=null;fx={};msg="Neue Partie.";draw()}},"Neu");
+  const own=t=>t==0?[7,8,9,10,11]:[1,2,3,4,5];
+  function refill(t){if(own(t).some(i=>p[i].s>0))return;let need=5;const mine=Math.min(Math.max(sc[t],0),5);sc[t]-=mine;need-=mine;if(need){const o=1-t,b=Math.min(Math.max(sc[o],0),need);sc[o]-=b;debt[t]+=b;need-=b}const n=5-need;if(n==0){over=true;return}own(t).slice(0,n).forEach(i=>p[i].s=1);msg=(t==0?"Unten":"Oben")+" hatte keine Steine mehr und legt neu aus."}
+  function finish(){over=true;own(0).forEach(i=>{sc[0]+=p[i].s;p[i].s=0});own(1).forEach(i=>{sc[1]+=p[i].s;p[i].s=0});[0,1].forEach(t=>{sc[t]-=debt[t];sc[1-t]+=debt[t]});draw()}
+  async function move(pit,dir){busy=true;chosen=null;const v=ver,gen=OQ.sow(p,pit,dir);let r=gen.next();while(!r.done){if(v!==ver)return;const e=r.value;if(e.type=="end")msg=e.why;fx=e.cap!=null?{cap:e.cap}:e.act!=null?{act:e.act}:{};draw();await sleep(e.type=="cap"?650:230);r=gen.next()}if(v!==ver)return;sc[turn]+=r.value||0;fx={};busy=false;
+    if(!p[0].big&&!p[6].big){finish();return}
+    turn=1-turn;refill(turn);if(over){finish();return}draw();if(bot&&turn==1)botMove()}
+  async function botMove(){const v=ver;busy=true;draw();await sleep(600);if(v!==ver)return;let best=null,bs=-1;for(const i of own(1)){if(!p[i].s)continue;for(const d of[1,-1]){const c=JSON.parse(JSON.stringify(p));const g=OQ.sow(c,i,d);let r=g.next(),n=0;while(!r.done&&n++<5000)r=g.next();const val=(r.value||0)+Math.random();if(val>bs){bs=val;best=[i,d]}}}move(best[0],best[1])}
+  function click(i){if(busy||over)return;chosen=i;draw()}
+  function draw(){const pick=!busy&&!over&&!(bot&&turn==1)?own(turn).filter(i=>p[i].s>0):[];
+    stage.replaceChildren(oaqRender(p,{...fx,pick,click:pick.length?click:null}));
+    st.textContent=over?(sc[0]==sc[1]?"Unentschieden.":(sc[0]>sc[1]?"Unten":"Oben")+" gewinnt."):(turn==0?"Unten":"Oben")+" ist am Zug.";
+    info.textContent=`Punkte: unten ${sc[0]}, oben ${sc[1]}. ${msg}`;
+    dirs.replaceChildren();if(chosen!=null&&!busy&&!over){const toLeft=turn==0?1:-1;dirs.append(h("button",{class:"pri",onclick(){move(chosen,toLeft)}},"← nach links"),h("button",{class:"pri",onclick(){move(chosen,-toLeft)}},"nach rechts →"))}}
+  root.append(h("div",{class:"game wide"},stage,h("div",{class:"side"},st,dirs,info,h("div",{class:"ctrl"},bt,rs))));draw()}
+
+/* ---------- WESTLICHE KARTEN ---------- */
+const SU=["♠","♣","♦","♥"],RK=["3","4","5","6","7","8","9","10","J","Q","K","A","2"];
+const cardId=(r,su)=>r*4+su;
+const cR=i=>Math.floor(i/4),cS=i=>i%4;
+function pc(i,o={}){if(o.down)return h("span",{class:"pc down","aria-label":"verdeckte Karte"});const su=cS(i);const t=o.click?"button":"span";return h(t,{class:`pc ${su>=2?"r":""} ${o.sel?"sel":""} ${o.win?"win":""} ${o.dim?"dim":""}`,onclick:o.click},RK[cR(i)],h("br"),SU[su])}
+const c=(r,su)=>cardId(RK.indexOf(r),SU.indexOf(su));
+const TL={
+  classify(a){a=[...a].sort((x,y)=>x-y);const n=a.length,rk=a.map(cR);if(!n)return null;const high=a[n-1],same=rk.every(r=>r==rk[0]);if(n==1)return{type:"single",n,high};if(same&&n<=4)return{type:["","","pair","triple","quad"][n],n,high};
+    if(n>=3&&!rk.includes(12)&&rk.every((r,i)=>i==0||r==rk[i-1]+1))return{type:"run",n,high};
+    if(n>=6&&n%2==0&&!rk.includes(12)){let ok=true;for(let i=0;i<n;i+=2){if(rk[i]!=rk[i+1])ok=false;if(i>0&&rk[i]!=rk[i-2]+1)ok=false}if(ok)return{type:"dbl",n,high}}return null},
+  beats(x,cur){if(!cur)return true;if(!x)return false;const two=cR(cur.high)==12;if(two){if(cur.type=="single"&&(x.type=="quad"||(x.type=="dbl"&&x.n==6)))return true;if(cur.type=="pair"&&x.type=="dbl"&&x.n==8)return true;if(cur.type=="triple"&&x.type=="dbl"&&x.n==10)return true}return x.type==cur.type&&x.n==cur.n&&x.high>cur.high},
+  isBomb(x,cur){return cur&&cR(cur.high)==12&&x.type!=cur.type&&TL.beats(x,cur)},
+  name:{single:"Einzelkarte",pair:"Paar",triple:"Drilling",quad:"Vierling",run:"Reihe",dbl:"Doppelreihe"},
+  botPlay(hand,cur,passed){const H=[...hand].sort((a,b)=>a-b),byR={};H.forEach(i=>(byR[cR(i)]=byR[cR(i)]||[]).push(i));
+    if(!cur){const r=cR(H[0]),g=byR[r];return g.length>=2&&r<11?g:[H[0]]}
+    const opts=[];if(!passed){if(cur.type=="single")H.forEach(i=>opts.push([i]));
+      if(["pair","triple","quad"].includes(cur.type))Object.values(byR).forEach(g=>{if(g.length>=cur.n)opts.push(g.slice(-cur.n))});
+      if(cur.type=="run")for(let r=0;r+cur.n<=12;r++){let ok=true,cs=[];for(let k=0;k<cur.n;k++){const g=byR[r+k];if(!g){ok=false;break}cs.push(g[g.length-1])}if(ok)opts.push(cs)}
+      if(cur.type=="dbl"){const m=cur.n/2;for(let r=0;r+m<=12;r++){let ok=true,cs=[];for(let k=0;k<m;k++){const g=byR[r+k];if(!g||g.length<2){ok=false;break}cs.push(...g.slice(-2))}if(ok)opts.push(cs)}}}
+    if(cR(cur.high)==12){Object.values(byR).forEach(g=>{if(g.length==4)opts.push(g)});const m=cur.type=="single"?3:cur.type=="pair"?4:5;for(let r=0;r+m<=12;r++){let ok=true,cs=[];for(let k=0;k<m;k++){const g=byR[r+k];if(!g||g.length<2){ok=false;break}cs.push(...g.slice(-2))}if(ok)opts.push(cs)}}
+    return opts.find(o=>TL.beats(TL.classify(o),cur))||null}
+};
+function row(cards,o={}){return h("div",{class:"cards"},cards.map(i=>pc(i,o)))}
+function tlRules(root){const label=(t,...r)=>h("div",{class:"seat"},h("b",{},t),...r);
+  stepper(root,[
+   {t:"Rangfolge",d:"Vier Personen bekommen je 13 Karten aus einem 52er-Blatt. Die 3 ist die niedrigste Karte, die 2 die höchste. Rang geht vor Farbe.",draw:t=>t.append(row(RK.map((r,i)=>cardId(i,3))))},
+   {t:"Bei gleichem Rang entscheidet die Farbe",d:"Herz schlägt Karo, Karo schlägt Kreuz, Kreuz schlägt Pik. Die Pik-3 ist die niedrigste Karte des Spiels.",draw:t=>t.append(row([c("9","♠"),c("9","♣"),c("9","♦"),c("9","♥")]))},
+   {t:"Erlaubte Kombinationen",d:"Eine Reihe braucht mindestens 3 aufeinanderfolgende Ränge in beliebigen Farben, eine Doppelreihe mindestens 3 aufeinanderfolgende Paare. Die 2 darf in keiner Reihe vorkommen.",draw:t=>t.append(h("div",{class:"table4"},label("Einzeln",row([c("7","♦")])),label("Paar",row([c("7","♦"),c("7","♠")])),label("Drilling",row([c("9","♠"),c("9","♦"),c("9","♥")])),label("Vierling",row([c("Q","♠"),c("Q","♣"),c("Q","♦"),c("Q","♥")])),label("Reihe",row([c("5","♣"),c("6","♥"),c("7","♠")])),label("Doppelreihe",row([c("5","♣"),c("5","♥"),c("6","♠"),c("6","♦"),c("7","♣"),c("7","♥")])))) },
+   {t:"Überbieten",d:"Du musst dieselbe Art mit derselben Kartenzahl legen und höher sein. Verglichen wird die höchste Karte. Das Paar mit Karo-9 schlägt das Paar mit Kreuz-9.",draw:t=>t.append(h("div",{class:"table4"},label("Liegt",row([c("9","♠"),c("9","♣")])),label("Schlägt",row([c("9","♦"),c("9","♥")],{win:true}))))},
+   {t:"Passen",d:"Wer passt, setzt bis zum nächsten neuen Stich aus. Überbietet niemand mehr, eröffnet der Letzte, der gelegt hat, frei mit einer beliebigen Kombination.",draw:t=>t.append(h("div",{class:"table4"},label("Anna",row([c("5","♠")])),label("Bình",row([c("8","♦")])),label("Chi",h("span",{},"passt")),label("Du",row([c("K","♣")],{win:true})),label("Neuer Stich",h("span",{},"Du eröffnest frei"))))},
+   {t:"Bomben gegen Zweien",d:"Nur gegen Zweien gibt es Ausnahmen: Vierling oder drei Paare in Reihe schlagen eine einzelne 2, vier Paare in Reihe schlagen ein Paar 2er, fünf Paare in Reihe einen Drilling 2er. Bomben darf auch legen, wer schon gepasst hat. Gegen ein Ass helfen sie nicht.",draw:t=>t.append(h("div",{class:"table4"},label("Liegt",row([c("2","♥")])),label("Bombe",row([c("4","♠"),c("4","♣"),c("4","♦"),c("4","♥")],{win:true}))))},
+   {t:"Sieg",d:"Wer zuerst alle Karten los ist, gewinnt. Nach Pagat endet das Spiel, wenn nur noch einer Karten hat. Im Spielmodus hier endet die Runde beim ersten Sieger.",draw:t=>t.append(h("div",{class:"table4"},label("Du",h("span",{},"0 Karten, Sieg")),label("Anna",row([c("3","♠"),c("8","♣")],{dim:true})),label("Bình",row([c("J","♦")],{dim:true}))))}
+  ])}
+function tlPlay(root){const names=["Du","Anna","Bình","Chi"];let hands,cur,curCards,passed,turn,leader,sel,over,msg,first;
+  const area=h("div",{class:"table4"}),st=h("div",{class:"status"});
+  const playB=h("button",{class:"pri",onclick:play},"Legen"),passB=h("button",{onclick:doPass},"Passen"),nw=h("button",{onclick:start},"Neu");
+  function start(){ver++;const d=shuffle([...Array(52).keys()]);hands=[0,1,2,3].map(i=>d.slice(i*13,i*13+13).sort((a,b)=>a-b));turn=hands.findIndex(x=>x.includes(0));first=true;cur=null;curCards=[];passed=new Set();leader=turn;sel=new Set();over=false;msg=`${names[turn]} hat die Pik-3 und beginnt.`;draw();next()}
+  function next(){if(over)return;draw();if(turn!=0)bot()}
+  async function bot(){const v=ver,t=turn;await sleep(800);if(v!==ver)return;const pl=TL.botPlay(hands[t],cur,passed.has(t));if(pl){lay(t,pl)}else{passed.add(t);msg=`${names[t]} passt.`;adv()}}
+  function lay(t,cards){const cl=TL.classify(cards);hands[t]=hands[t].filter(i=>!cards.includes(i));cur=cl;curCards=cards;leader=t;passed.delete(t);msg=`${names[t]} legt: ${TL.name[cl.type]}.`;if(!hands[t].length){over=true;msg=`${names[t]} ist alle Karten los und gewinnt.`;draw();return}first=false;adv()}
+  function adv(){let n=turn;for(let k=0;k<4;k++){n=(n+1)%4;if(n==leader){cur=null;curCards=[];passed=new Set();turn=leader;msg+=` ${names[leader]} eröffnet neu.`;return next()}
+      if(!passed.has(n)){turn=n;return next()}
+      if(cur&&cR(cur.high)==12&&n!=0&&TL.botPlay(hands[n],cur,true)){turn=n;return next()}}}
+  function play(){if(over)return;const a=[...sel],cl=TL.classify(a);if(!cl){msg="Das ist keine erlaubte Kombination.";draw();return}
+    if(turn!=0){if(!(passed.has(0)&&cur&&TL.isBomb(cl,cur))){msg="Du bist nicht am Zug.";draw();return}ver++;turn=0}
+    else if(passed.has(0)&&!(cur&&TL.isBomb(cl,cur))){msg="Du hast gepasst, jetzt geht nur noch eine Bombe.";draw();return}
+    if(!TL.beats(cl,cur)){msg=`${TL.name[cl.type]} schlägt das Liegende nicht.`;draw();return}sel=new Set();lay(0,a)}
+  function doPass(){if(over||turn!=0)return;if(!cur){msg="Du eröffnest und darfst nicht passen.";draw();return}passed.add(0);sel=new Set();msg="Du passt.";adv()}
+  function draw(){area.replaceChildren(
+     ...[1,2,3].map(i=>h("div",{class:"seat"},h("b",{},names[i]),h("span",{},`${hands[i].length} Karten`),turn==i&&!over?h("span",{class:"pill a"},"am Zug"):passed.has(i)?h("span",{class:"note"},"gepasst"):null)),
+     h("div",{},h("div",{class:"note",style:"text-align:center"},"In der Mitte"),h("div",{class:"cards"},curCards.length?curCards.map(i=>pc(i)):h("span",{class:"note",style:"align-self:center"},"frei"))),
+     h("div",{},h("div",{class:"note",style:"text-align:center"},"Deine Hand, Karten antippen"),h("div",{class:"cards"},hands[0].map(i=>pc(i,{sel:sel.has(i),click(){sel.has(i)?sel.delete(i):sel.add(i);draw()}})))));
+    st.textContent=msg;playB.disabled=over;passB.disabled=over||turn!=0}
+  root.append(h("div",{class:"game wide"},area,h("div",{class:"side"},st,h("div",{class:"ctrl"},playB,passB,nw),h("p",{class:"note"},"Die drei Gegner spielen eine einfache Strategie: Sie legen die niedrigste Karte, die reicht."))));start()}
+/* ---------- CẮT TÊ ---------- */
+const CT=[
+ {lead:"A",p:{A:["K","♠"],B:["A","♠"],C:["4","♦",1],D:["2","♠",1]},note:"A eröffnet. B sticht höher in derselben Farbe. C und D werfen verdeckt ab."},
+ {lead:"B",p:{B:["9","♥"],A:["10","♥"],C:["2","♥",1],D:["4","♥",1]},note:"B eröffnet, weil B den letzten Stich gewann. A geht höher."},
+ {lead:"A",p:{A:["7","♣"],B:["2","♣",1],C:["J","♣"],D:["3","♣",1]},note:"C holt seinen ersten Stich."},
+ {lead:"C",p:{C:["5","♦"],A:["8","♦"],B:["3","♦",1],D:["2","♦",1]},note:"Nach diesem Stich scheidet aus, wer noch keinen Stich hat: Das ist D."},
+ {lead:"A",p:{A:["6","♠"],B:["4","♣",1],C:["9","♠"]},note:"Es spielen nur noch A, B und C. Die ersten vier Stiche holte niemand allein."},
+ {lead:"C",p:{C:["3","♥"],A:["J","♥"],B:["5","♣",1]},note:"Der sechste Stich entscheidet: A gewinnt ihn und damit das Spiel."}
+];
+function ctRank(r){return["2","3","4","5","6","7","8","9","10","J","Q","K","A"].indexOf(r)}
+function ctWinner(t){const su=t.p[t.lead][1];let w=t.lead;for(const k in t.p){const x=t.p[k];if(!x[2]&&x[1]==su&&ctRank(x[0])>ctRank(t.p[w][0]))w=k}return w}
+function ctDraw(tr){return t=>{t.append(h("div",{class:"table4"},Object.keys(tr.p).sort().map(k=>{const x=tr.p[k],w=ctWinner(tr)==k;return h("div",{class:"seat"},h("b",{},"Spieler "+k),x[2]?pc(0,{down:true}):pc(c(x[0],x[1]),{win:w}),k==tr.lead?h("span",{class:"note"},"eröffnet"):null,w?h("span",{class:"pill a"},"gewinnt den Stich"):null)})))}}
+function ctRules(root){stepper(root,[
+   {t:"Grundlage",d:"3 bis 6 Personen, 52 Karten ohne Trumpf, je 6 Karten. Das Ass ist am höchsten, die 2 am niedrigsten. Wichtig ist nur der letzte Stich. Das folgende Beispiel ist eine ausgedachte Partie mit vier Personen.",draw:t=>t.append(row([c("A","♠"),c("K","♠"),c("Q","♠"),c("J","♠"),c("10","♠"),c("9","♠"),c("3","♠"),c("2","♠")]))},
+   ...CT.map((tr,i)=>({t:`Stich ${i+1}`,d:tr.note,draw:ctDraw(tr)})),
+   {t:"Sonderfälle",d:"Wer alle ersten vier Stiche holt, gewinnt sofort. Ein Vierling oder sechs Karten derselben Farbe gewinnen automatisch. Es gibt keine Bedienpflicht, ein Abwurf nimmt aber das Recht auf diesen Stich. Eine Variante, Eighty-three, wertet den fünften Stich. Der Gewinner gibt in der nächsten Runde.",draw:t=>t.append(row(["3","7","9","10","K","A"].map(r=>c(r,"♥"))))}
+])}
+
+/* ---------- XÌ DÁCH ---------- */
+const XD={
+  val(cs){let t=0,a=0;cs.forEach(i=>{const r=RK[cR(i)];if(r=="A")a++;else if("JQK".includes(r))t+=10;else if(r=="10")t+=10;else t+=+r});let best=t+a;const opts=[1,10,11];function rec(k,sum){if(k==a){if(sum<=21&&(best>21||sum>best))best=sum;if(sum>21&&best>21&&sum<best)best=sum;return}opts.forEach(o=>rec(k+1,sum+o))}rec(0,t);return best},
+  kind(cs){const v=XD.val(cs);if(cs.length==2&&cs.every(i=>RK[cR(i)]=="A"))return"Xì bàn";if(cs.length==2&&v==21)return"Xì dách";if(cs.length==5&&v<=21)return"Ngũ linh";if(v>21)return"überkauft";return null}
+};
+function xdPlay(root){let d,me,de,over;const st=h("div",{class:"status"}),a=h("div",{class:"table4"});
+  const dr=h("button",{class:"pri",onclick(){me.push(d.pop());const k=XD.kind(me);if(k=="überkauft"||k=="Ngũ linh")end();else draw()}},"Karte ziehen"),op=h("button",{onclick:end},"Aufdecken"),nw=h("button",{onclick:start},"Neue Hand");
+  function start(){d=shuffle([...Array(52).keys()]);me=[d.pop(),d.pop()];de=[d.pop(),d.pop()];over=false;const k=XD.kind(me);if(k=="Xì bàn"||k=="Xì dách")end();else draw()}
+  function end(){const k=XD.kind(me);if(k!="überkauft")while(XD.val(de)<16&&de.length<5&&!XD.kind(de))de.push(d.pop());over=true;draw()}
+  function res(){const a=XD.kind(me),b=XD.kind(de),v=XD.val(me),w=XD.val(de);if(a=="überkauft")return"Überkauft, die Bank gewinnt.";if(b=="überkauft")return"Die Bank hat überkauft, du gewinnst.";if(a&&a==b)return`Beide haben ${a}, unentschieden.`;if(a)return a+": Du gewinnst.";if(b)return`Die Bank hat ${b}.`;return v>w?`${v} gegen ${w}, du gewinnst.`:v<w?`${v} gegen ${w}, die Bank gewinnt.`:`${v} zu ${w}, unentschieden.`}
+  function draw(){a.replaceChildren(h("div",{class:"seat"},h("b",{},"Bank"),h("div",{class:"cards",style:"justify-content:flex-start"},de.map(i=>pc(i,{down:!over}))),over?h("span",{},XD.val(de)):null),h("div",{class:"seat"},h("b",{},"Du"),h("div",{class:"cards",style:"justify-content:flex-start"},me.map(i=>pc(i))),h("span",{},XD.val(me))));st.textContent=over?res():"Ziehen oder aufdecken?";dr.disabled=op.disabled=over}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},a),h("div",{class:"side"},h("h3",{},"Regeln"),h("p",{},"Du willst näher an 21 als die Bank, ohne zu überkaufen. Bildkarten zählen 10, ein Ass zählt 1, 10 oder 11, je nachdem, was dir nützt."),h("table",{},h("tr",{},h("th",{},"Xì bàn"),h("td",{},"Zwei Asse als erste Karten, Sofortsieg")),h("tr",{},h("th",{},"Xì dách"),h("td",{},"21 mit den ersten zwei Karten, Sofortsieg")),h("tr",{},h("th",{},"Ngũ linh"),h("td",{},"Fünf Karten bis 21, Sofortsieg"))),st,h("div",{class:"ctrl"},dr,op,nw),h("p",{class:"note"},"In dieser Demo zieht die Bank bis mindestens 16. Das ist meine Annahme, die Quelle nennt keine Untergrenze. Nur Xì bàn und Xì dách werden sofort aufgedeckt, die Rangfolge der Sonderhände untereinander ist nicht belegt."))));start()}
+
+/* ---------- LANGE KARTEN ---------- */
+const NUM=["","Nhất","Nhị","Tam","Tứ","Ngũ","Lục","Thất","Bát","Cửu"];
+const lc=(n,su,o={})=>{const t=o.click?"button":"span";const cl={Văn:"van",Sách:"sach",Vạn:"vn",Yêu:"yeu"}[su];return h(t,{class:`lc ${cl} ${o.sel?"sel":""} ${o.hl||""}`,onclick:o.click,"aria-label":`${o.name||NUM[n]} ${su}`},h("span",{},o.name?"":NUM[n]),h("b",{},o.name?o.short:n),h("span",{},su=="Yêu"?(o.name||""):su))};
+const chanHand=[[2,"Văn"],[2,"Văn"],[3,"Vạn"],[3,"Vạn"],[4,"Sách"],[4,"Sách"],[5,"Văn"],[5,"Văn"],[6,"Vạn"],[6,"Vạn"],[7,"Sách"],[7,"Vạn"],[8,"Văn"],[8,"Sách"],[9,"Vạn"],[9,"Văn"],[9,"Sách"],[2,"Sách"],[6,"Sách"]];
+function chanRules(root){const row2=(arr)=>h("div",{class:"cards"},arr.map(([n,su,hl])=>lc(n,su,{hl})));
+  stepper(root,[
+   {t:"Die Karten",d:"Lange, schmale Karten in drei Farben: Văn, Vạn und Sách. Diese Zeichnung ist vereinfacht, echte Karten zeigen chinesische Zeichen und Figuren. Laut Beschreibung erhält jeder 19 Karten, der Rest bildet den Stapel Nọc.",draw:t=>t.append(row2([[2,"Văn"],[5,"Vạn"],[7,"Sách"],[9,"Văn"]]))},
+   {t:"Chắn: zwei identische Karten",d:"Gleicher Rang und gleiche Farbe. Das sind die wertvollsten Paare.",draw:t=>t.append(row2([[5,"Văn","hl"],[5,"Văn","hl"]]))},
+   {t:"Cạ: gleicher Rang, andere Farbe",d:"Zwei Karten mit gleicher Zahl aus verschiedenen Farben ergeben ein schwächeres Paar.",draw:t=>t.append(row2([[7,"Sách","hl2"],[7,"Vạn","hl2"]]))},
+   {t:"Ba đầu: drei gleiche Ränge, drei Farben",d:"Diese drei Karten ergeben noch kein fertiges Paar, aus ihnen lässt sich aber eines formen.",draw:t=>t.append(row2([[9,"Vạn","hl3"],[9,"Văn","hl3"],[9,"Sách","hl3"]]))},
+   {t:"Què: eine Karte ohne Partner",d:"Eine Einzelkarte ist der natürliche Abwurf.",draw:t=>t.append(row2([[2,"Sách","hl4"]]))},
+   {t:"Der Zug",d:"Wer dran ist, wirft eine Karte ab. Der Nächste nimmt sie, wenn sie ein Chắn oder Cạ ergibt (ăn). Sonst zieht er vom Stapel (bốc) und wirft danach ab.",draw:t=>t.append(h("div",{class:"table4"},h("div",{class:"seat"},h("b",{},"Abwurf"),lc(5,"Văn",{hl:"hl"})),h("div",{class:"seat"},h("b",{},"Deine Hand"),lc(5,"Văn",{hl:"hl"}),lc(3,"Vạn"),lc(8,"Sách"))))},
+   {t:"Gewinnen: ù",d:"Du gewinnst, wenn alle Karten zu Paaren passen. Typisch sind mindestens 10 Paare, davon mindestens 6 Chắn. Der Sieg muss korrekt angesagt werden. Die Bonuspunkte unterscheiden sich stark je nach Tisch und sind hier nicht dargestellt.",draw:t=>t.append(row2([[2,"Văn","hl"],[2,"Văn","hl"],[5,"Văn","hl"],[5,"Văn","hl"],[7,"Sách","hl2"],[7,"Vạn","hl2"]]))},
+   {t:"Verbote",d:"Ein fertiges Chắn darf man nicht aufbrechen, um abzuwerfen. Eine abgelehnte Karte darf man nicht nachträglich nehmen. Eine aufgenommene Karte darf man nicht gleich wieder ablegen.",draw:t=>t.append(row2([[6,"Vạn","hl4"],[6,"Vạn","hl4"]]))}
+  ])}
+function chanPlay(root){let left,sel,done,msg;const area=h("div",{class:"stage"}),st=h("div",{class:"status"}),dn=h("div",{class:"note"});
+  function start(){left=chanHand.map((c,i)=>({n:c[0],su:c[1],i}));sel=[];done=[];msg="Tippe zwei Karten an.";draw()}
+  function click(x){if(sel.includes(x)){sel=sel.filter(y=>y!=x)}else sel.push(x);if(sel.length==2){const[a,b]=sel;let k=null;if(a.n==b.n&&a.su==b.su)k="Chắn";else if(a.n==b.n)k="Cạ";if(k){done.push(k);left=left.filter(y=>y!=a&&y!=b);msg=`${k}: ${NUM[a.n]} ${a.su} und ${NUM[b.n]} ${b.su}.`}else msg="Kein Paar: Die Zahlen sind verschieden.";sel=[]}draw()}
+  function draw(){area.replaceChildren(h("div",{class:"cards"},left.map(x=>lc(x.n,x.su,{sel:sel.includes(x),click:()=>click(x)}))));const nc=done.filter(k=>k=="Chắn").length;st.textContent=msg;dn.textContent=`Gefunden: ${nc} Chắn, ${done.length-nc} Cạ, ${left.length} Karten übrig. In dieser Hand sind 5 Chắn und 3 Cạ möglich, 3 Karten bleiben übrig.`}
+  root.append(h("div",{class:"game"},area,h("div",{class:"side"},h("h3",{},"Hand sortieren"),st,dn,h("div",{class:"ctrl"},h("button",{onclick:start},"Neu")),h("p",{class:"note"},"Das ist ein Paartrainer mit einer festen Beispielhand, kein vollständiges Spiel. Für ein spielbares Chắn sind die Tischregeln zu uneinheitlich."))));start()}
+
+/* ---------- TỔ TÔM ---------- */
+const TT={cards:(()=>{const o=[];["Văn","Sách","Vạn"].forEach(su=>{for(let n=1;n<=9;n++)o.push({n,su,k:n+su})});o.push({y:"Chi Chi",k:"CC"},{y:"Không Thang",k:"KT"},{y:"Ông lão",k:"OL"});return o})(),
+ spec:[[["1Văn","2Văn","3Văn"],"Reihe 1-2-3 Văn, traditionell mitgezählt"],[["9Văn","1Sách","1Vạn"],"Sonderset 9 Văn, 1 Sách, 1 Vạn"],[["8Văn","2Sách","2Vạn"],"Sonderset 8 Văn, 2 Sách, 2 Vạn"],[["7Văn","3Sách","3Vạn"],"Tôm"],[["KT","9Sách","9Vạn"],"Sonderset Không Thang, 9 Sách, 9 Vạn"],[["KT","9Sách","OL"],"Sonderset Không Thang, 9 Sách, Ông lão"],[["CC","8Sách","9Vạn"],"Lèo"]],
+ classify(a){if(!a.length)return null;const ks=a.map(x=>x.k).sort();for(const[s2,nm]of TT.spec)if([...s2].sort().join()==ks.join())return{ok:true,n:nm,sp:true};if(a.every(x=>x.y))return{ok:true,n:"Phu yêu: Sonderkarten zählen als Kombination"};if(a.some(x=>x.y))return{ok:false,n:"Diese Mischung ist keine gültige Kombination."};if(a.length<3)return{ok:false,n:"Mindestens drei Karten nötig."};const su=new Set(a.map(x=>x.su)),nn=a.map(x=>x.n).sort((p,q)=>p-q);if(su.size==1&&nn.every((v,i)=>i==0||v==nn[i-1]+1))return{ok:true,n:"Phu dọc: Reihe in einer Farbe"};if(new Set(nn).size==1&&su.size==a.length)return{ok:true,n:"Phu bí: gleicher Rang, verschiedene Farben"};return{ok:false,n:"Keine gültige Kombination."}}};
+function ttCard(x,o={}){return x.y?lc(0,"Yêu",{...o,name:x.y,short:x.y.split(" ").map(w=>w[0]).join("")}):lc(x.n,x.su,o)}
+function ttRules(root){stepper(root,[
+   {t:"Kartensatz",d:"120 Karten: drei Farben mit den Rängen 1 bis 9 und drei Sonderkarten, von jeder Karte vier Exemplare. Gespielt wird zu fünft auf einer Matte. Hier ist jede Karte einmal gezeigt, vereinfacht gezeichnet.",draw:t=>{t.append(h("div",{class:"grid30"},TT.cards.map(x=>ttCard(x))))}},
+   {t:"Austeilen",d:"Der Geber bildet sechs Stapel zu je 20 Karten. Fünf gehen an die Spielenden, der sechste bildet den Talon. Der Geber zieht zwei Karten vom Talon, behält eine und legt die andere offen aus. Er hat also 21 Karten.",draw:t=>t.append(h("div",{class:"table4"},["Geber: 21","Spieler 2: 20","Spieler 3: 20","Spieler 4: 20","Spieler 5: 20","Talon: 18, eine Karte offen"].map(x=>h("div",{class:"seat"},h("b",{},x.split(":")[0]),h("span",{},x.split(":")[1])))))},
+   {t:"Der Zug",d:"Gespielt wird gegen den Uhrzeigersinn. Du nimmst die abgelegte Karte (ăn) oder ziehst vom Talon und legst danach eine Karte ab. Ist der Talon leer und niemand hat gewonnen, ist die Partie unentschieden.",draw:t=>t.append(h("div",{class:"table4"},h("div",{class:"seat"},h("b",{},"Abgelegt"),lc(6,"Văn",{hl:"hl"})),h("div",{class:"seat"},h("b",{},"Hand"),lc(4,"Văn",{hl:"hl"}),lc(5,"Văn",{hl:"hl"}),lc(2,"Sách"))))},
+   {t:"Reihe und Rang",d:"Eine Reihe sind mindestens drei aufeinanderfolgende Karten einer Farbe (phu dọc), dazu kommen drei oder mehr gleiche Ränge in verschiedenen Farben (phu bí). Sonderkarten zählen auch einzeln als Kombination (phu yêu).",draw:t=>t.append(h("div",{class:"table4"},h("div",{class:"seat"},h("b",{},"dọc"),lc(4,"Văn"),lc(5,"Văn"),lc(6,"Văn")),h("div",{class:"seat"},h("b",{},"bí"),lc(4,"Văn"),lc(4,"Sách"),lc(4,"Vạn")),h("div",{class:"seat"},h("b",{},"yêu"),ttCard(TT.cards[29]))))},
+   {t:"Gleiche Karten",d:"Drei gleiche Karten heißen khàn, wenn du sie vom Austeilen hast, und phỗng, wenn die dritte vom Gegner kommt. Vier gleiche heißen thiên khai beziehungsweise dậy khàn.",draw:t=>t.append(h("div",{class:"cards"},lc(7,"Vạn"),lc(7,"Vạn"),lc(7,"Vạn")))},
+   {t:"Gewinnen: ù",d:"Alle 21 Karten liegen in Kombinationen, mindestens eine davon ist eine spezielle. Es gibt viele benannte Gewinnarten wie ù tôm oder ù lèo. Die Punktwerte schwanken je nach Ort, deshalb stehen sie hier nicht.",draw:t=>t.append(h("div",{class:"cards"},lc(7,"Văn",{hl:"hl"}),lc(3,"Sách",{hl:"hl"}),lc(3,"Vạn",{hl:"hl"})))}
+])}
+function ttPlay(root){let sel=[];const gr=h("div",{class:"grid30"}),st=h("div",{class:"status"});
+  function draw(){gr.replaceChildren(...TT.cards.map(x=>ttCard(x,{sel:sel.includes(x),click(){sel.includes(x)?sel=sel.filter(y=>y!=x):sel.push(x);draw()}})));const r=TT.classify(sel);st.textContent=r?r.n:"Tippe Karten an, um eine Kombination zu prüfen.";st.style.color=r?(r.ok?"var(--ok)":"var(--bad)"):""}
+  root.append(h("div",{class:"game"},h("div",{class:"stage"},gr),h("div",{class:"side"},h("h3",{},"Kombinationen prüfen"),st,h("div",{class:"ctrl"},h("button",{onclick(){sel=[];draw()}},"Auswahl leeren")),h("p",{class:"note"},"Probiere zum Beispiel 7 Văn, 3 Sách, 3 Vạn (tôm) oder Chi Chi, 8 Sách, 9 Vạn (lèo). Die Sonderkarten sind CC, KT und ÔL. Das ist ein Prüfwerkzeug. Ein vollständiges Tổ tôm baue ich nicht, weil die Quelle selbst Stellen als unklar markiert."))));draw()}
+
+/* ---------- BÀI CHÒI ---------- */
+function bcSvg(o={}){const g=[],S=420,cx=210,cy=210;g.push(s("rect",{width:S,height:S,rx:8,fill:"var(--wood)"}));
+  g.push(s("rect",{x:cx-34,y:cy-24,width:68,height:48,fill:"var(--panel)",stroke:"var(--wood-line)","stroke-width":2}),s("text",{x:cx,y:cy+5,"text-anchor":"middle","font-size":13,fill:"var(--ink)"},"Mitte"));
+  for(let i=0;i<10;i++){const a=i/10*Math.PI*2-Math.PI/2,x=cx+150*Math.cos(a),y=cy+150*Math.sin(a),win=o.win===i;g.push(s("rect",{x:x-24,y:y-18,width:48,height:36,rx:3,fill:win?"var(--accent)":"var(--panel)",stroke:"var(--wood-line)","stroke-width":2,class:win?"pulse":null}),s("text",{x,y:y+5,"text-anchor":"middle","font-size":13,fill:win?"var(--accent-ink)":"var(--ink)"},`${o.flags&&o.flags[i]?"⚑ ":""}${i+1}`))}
+  if(o.say)g.push(s("text",{x:cx,y:cy+50,"text-anchor":"middle","font-size":15,fill:"#2A1C08","font-weight":700},o.say));
+  return s("svg",{viewBox:`0 0 ${S} ${S}`,role:"img","aria-label":"Zehn Hütten um die Mittelhütte"},g)}
+function bcRules(root){stepper(root,[
+   {t:"Der Platz",d:"Elf Bambushütten auf dem Dorf- oder Marktplatz: zehn für die Spielenden, die mittlere für die Veranstalter. Gespielt wird vor allem zu Tết in Zentralvietnam. In Hanoi ist es also eher unwahrscheinlich.",draw:t=>t.append(bcSvg())},
+   {t:"Die Karten",d:"Verwendet werden 28 von 30 Kartenpaaren, je etwa 12 × 3 cm groß. Jede Hütte, auch die mittlere, wählt fünf Karten. Die 56. Karte ist die Einkaufskarte, mit der die Runde beginnt.",draw:t=>{t.append(h("div",{class:"cards"},lc(2,"Văn"),lc(5,"Vạn"),lc(7,"Sách"),lc(3,"Văn"),lc(9,"Vạn")))}},
+   {t:"Der Ansager singt",d:"Der Ansager (anh hiệu) singt die Einkaufskarte in einer Verszeile aus.",draw:t=>t.append(bcSvg({say:"♪ „Con bài đi chợ …“"}))},
+   {t:"Karte abgeben",d:"Wer die passende Karte hat, ruft ihren Namen und gibt sie mit einer weiteren eigenen Karte ab. Der Ansager legt das Paar in den Korb und singt den Partner der zweiten Karte.",draw:t=>t.append(bcSvg({win:3,say:"Hütte 4 gibt ab"}))},
+   {t:"Tới rồi!",d:"Bildet eine ausgesungene Karte mit einer Handkarte ein Paar, gewinnt die Hütte. Sie schlägt die Bambusglocke und ruft „Tới rồi!“ Der Ansager bringt sofort eine Fahne. Danach beginnt die nächste Runde.",draw:t=>t.append(bcSvg({win:7,flags:{7:1},say:"Tới rồi! Tới rồi!"}))},
+   {t:"Abrechnung",d:"Laut Quelle gibt es 11 Fahnen, aber nur 10 Runden. Die 11. Fahne ist der Gewinn der Veranstalter, an anderer Stelle nennt der Text zehn Fahnen. Eine Fahne deckt die Kosten, zwei oder mehr gelten als gutes Vorzeichen fürs neue Jahr.",draw:t=>t.append(bcSvg({flags:{0:1,2:1,5:1,7:1,8:1}}))}
+])}
+
+/* ---------- BẦU CUA ---------- */
+const calab=()=>s("svg",{viewBox:"0 0 24 30",width:24,height:30,"aria-hidden":"true"},s("circle",{cx:12,cy:9,r:6,fill:"#C58A10"}),s("circle",{cx:12,cy:20,r:9,fill:"#C58A10"}),s("rect",{x:11,y:0,width:2,height:4,fill:"#4A3210"}));
+const BC=[["Bầu","Kürbis",null],["Cua","Krabbe","🦀"],["Tôm","Garnele","🦐"],["Cá","Fisch","🐟"],["Gà","Hahn","🐓"],["Nai","Hirsch","🦌"]];
+const sym=i=>BC[i][2]||calab();
+function bcuaPlay(root){let bal=100,bets=[0,0,0,0,0,0],res=[0,1,3],rolling=false,msg="Tippe auf Felder, um je 10 zu setzen, dann würfle.";
+  const area=h("div",{class:"stage"}),st=h("div",{class:"status"}),info=h("div",{class:"note"});
+  const roll=h("button",{class:"pri",onclick:go},"Würfeln"),clr=h("button",{onclick(){if(rolling)return;bets.forEach(b=>bal+=b);bets=[0,0,0,0,0,0];msg="Einsätze zurückgenommen.";draw()}},"Einsätze zurück");
+  const nw=h("button",{onclick(){bal=100;bets=[0,0,0,0,0,0];msg="Wieder 100 Spielgeld.";draw()}},"Neu");
+  async function go(){if(rolling)return;if(!bets.some(b=>b)){msg="Setze zuerst auf mindestens ein Feld.";draw();return}rolling=true;msg="Die Würfel rollen …";draw();const v=ver;await sleep(1100);if(v!==ver)return;res=[rnd(6),rnd(6),rnd(6)];rolling=false;let back=0;bets.forEach((b,i)=>{const m=res.filter(x=>x==i).length;if(m&&b)back+=b+b*m});const put=bets.reduce((a,b)=>a+b,0);bal+=back;msg=back>put?`Plus ${back-put}.`:back==put?"Plusminus null.":`Minus ${put-back}.`;bets=[0,0,0,0,0,0];draw(true)}
+  function draw(after){area.replaceChildren(h("div",{class:"dice"},res.map(i=>h("div",{class:"die "+(rolling?"roll":"")},sym(i)))),h("div",{class:"bets"},BC.map((b,i)=>h("button",{class:"bet "+(after&&res.includes(i)?"hit":""),onclick(){if(rolling||bal<10)return;bal-=10;bets[i]+=10;msg=`${bets[i]} auf ${b[0]}.`;draw()}},h("span",{class:"sym"},sym(i)),h("b",{},b[0]),h("span",{class:"note"},b[1]),h("span",{class:"note"},bets[i]?`Einsatz ${bets[i]}`:" ")))));st.textContent=msg;info.textContent=`Spielgeld: ${bal}`}
+  root.append(h("div",{class:"game"},area,h("div",{class:"side"},h("h3",{},"Regeln"),h("p",{},"Drei Würfel mit sechs Motiven. Du setzt auf Motive. Zeigt ein Würfel dein Motiv, bekommst du den Einsatz einmal dazu, bei zwei Würfeln doppelt, bei dreien dreifach. Zeigt keiner das Motiv, behält die Bank den Einsatz."),st,info,h("div",{class:"ctrl"},roll,clr,nw),h("p",{class:"note"},"Der Hirsch wird in manchen Spielen durch einen Tiger ersetzt. Ausgerechnet ist der Erwartungswert: Pro gesetzter Einheit verlierst du langfristig 17/216, das sind rund 7,9 %. Das Spiel hier nutzt nur Spielgeld."))));draw()}
+
+/* ---------- CÁ NGỰA ---------- */
+function cnSvg(o={}){const S=420,c0=210,R=165,N=24,g=[],P=i=>{const a=i/N*Math.PI*2-Math.PI/2;return[c0+R*Math.cos(a),c0+R*Math.sin(a)]};
+  g.push(s("rect",{width:S,height:S,rx:8,fill:"var(--wood)"}));
+  for(let i=0;i<N;i++){const[x,y]=P(i);g.push(s("circle",{cx:x,cy:y,r:9,fill:"var(--panel)",stroke:"var(--wood-line)"}))}
+  [1,2,3,4,5,6].forEach(k=>{const[x,y]=P(0),d=(c0-y)/7;g.push(s("rect",{x:x-9,y:y+d*k-9,width:18,height:18,fill:o.home===k?"var(--accent)":"var(--panel)",stroke:"var(--wood-line)"}),s("text",{x,y:y+d*k+5,"text-anchor":"middle","font-size":12,fill:o.home===k?"var(--accent-ink)":"var(--ink)"},k))});
+  g.push(s("rect",{x:10,y:10,width:82,height:82,rx:6,fill:"none",stroke:"var(--wood-line)","stroke-width":2}),s("text",{x:51,y:106,"text-anchor":"middle","font-size":12,fill:"#2A1C08"},"Stall"));
+  [[32,32],[70,32],[32,70],[70,70]].forEach(([x,y],i)=>{if(i<(o.stall??0))g.push(s("circle",{cx:x,cy:y,r:11,fill:"var(--red)",stroke:"#000"}))});
+  if(o.enemyOut!=null){const[x,y]=P(o.enemyOut);g.push(s("circle",{cx:x,cy:y,r:11,fill:"var(--stone-b)",class:o.gone?"fade":null}))}
+  if(o.me!=null){const[x,y]=P(o.me);g.push(s("circle",{cx:x,cy:y,r:11,fill:"var(--red)",stroke:"#000",class:"pop tb"}))}
+  if(o.mark!=null){const[x,y]=P(o.mark);g.push(s("path",{d:`M${x-9} ${y-9}L${x+9} ${y+9}M${x+9} ${y-9}L${x-9} ${y+9}`,stroke:"var(--red)","stroke-width":4}))}
+  if(o.die)g.push(s("text",{x:c0,y:c0+70,"text-anchor":"middle","font-size":24,"font-weight":700,fill:"#2A1C08"},o.die));
+  return s("svg",{viewBox:`0 0 ${S} ${S}`,role:"img","aria-label":"Schematische Laufbahn"},g)}
+function cnRules(root){stepper(root,[
+   {t:"Ziel",d:"Jede Person hat vier Figuren im Stall und will als Erste alle vier ins Ziel bringen. Mein Beleg beschreibt das Brett nicht genau, die Bahn hier ist deshalb nur schematisch.",draw:t=>t.append(cnSvg({stall:4}))},
+   {t:"Heraus aus dem Stall",d:"Eine Figur kommt nur mit einer 1 oder einer 6 aufs Brett.",draw:t=>t.append(cnSvg({stall:3,me:0,die:"Wurf: 6"}))},
+   {t:"Genau ziehen",d:"Die Figur zieht genau so viele Felder, wie gewürfelt wurde, nicht mehr und nicht weniger.",draw:t=>t.append(cnSvg({stall:3,me:4,die:"Wurf: 4"}))},
+   {t:"Schlagen",d:"Landest du genau auf einer gegnerischen Figur, muss sie zurück in den Stall.",draw:t=>t.append(cnSvg({stall:3,me:9,enemyOut:9,gone:true,die:"Wurf: 5"}))},
+   {t:"Blockiert",d:"An einer gegnerischen Figur kommst du nicht vorbei, wenn dein Wurf dafür nicht reicht. Der Zug verfällt, wenn keine Figur ziehen kann.",draw:t=>t.append(cnSvg({stall:3,me:9,enemyOut:12,mark:15,die:"Wurf: 6"}))},
+   {t:"Einzug ins Ziel",d:"Nach einer Runde läuft die Figur in die Zieleinfahrt und rückt Feld für Feld vor, die Augenzahl muss passen. Fallen Würfel aus dem Becher, ist der Zug verloren.",draw:t=>t.append(cnSvg({stall:3,home:4,die:"Wurf: 4"}))},
+   {t:"Absprachen",d:"Viele Tische vereinbaren Boni und Strafen, zum Beispiel für das sechste Zielfeld. Die Quelle beschreibt diese nur grob, sie gehören nicht zu den festen Regeln.",draw:t=>t.append(cnSvg({stall:0,home:6}))}
+])}
+
+/* ---------- KATALOG ---------- */
+const SRC={
+ go:[["Wikipedia: Rules of Go","https://en.wikipedia.org/wiki/Rules_of_Go"],["World Mind Games: Häufige Anfängerfehler","https://www.worldmindgames.net/common-beginner-mistakes-go/"],["Wikipedia: Go-Sprichwörter","https://en.wikipedia.org/wiki/Go_proverb"],["US Go: First Capture Go","https://www.usgo-archive.org/files/pdf/kids_capture_go.pdf"],["Vietcetera: Brettspiele in Vietnam","https://vietcetera.com/en/forget-werewolf-and-uno-here-are-traditional-board-games-in-vietnam-you-should-know"]],
+ xq:[["Wikiwand: Xiangqi","https://wikiwand.com/en/Xiangqi"],["xiangqi.com: Eröffnungsprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-opening-principles"],["xiangqi.com: Mittelspielprinzipien","https://xiangqi.com/articles/ten-most-important-chinese-chess-midgame-principles"],["xiangqi.com: Endspielprinzipien","https://www.xiangqi.com/articles/ten-most-important-chinese-chess-endgame-principles"],["Texas State: Bericht aus einem Hanoier Park","https://txst.edu/clas/schoolpsychology/program-faculty/paul-jantz/rtrn-viet-nam/july-2023/page-7.html"]],
+ tl:[["Pagat: Thirteen / Tiến Lên","https://pagat.com/climbing/thirteen.html"]],
+ oq:[["Wikipedia: Ô ăn quan","https://en.wikipedia.org/wiki/%C3%94_%C4%83n_quan"]],
+ bc:[["Wikiwand: Bầu cua cá cọp","https://www.wikiwand.com/en/articles/Bau_cua_ca_cop"]],
+ ct:[["Gambiter: Cắt Tê","https://gambiter.com/cards/Cat_te.html"],["Pagat: Kartenspiele in Vietnam","https://pagat.com/national/vietnam.html"]],
+ ga:[["Mytour: Cờ gánh (Blog)","https://mytour.vn/vi/blog/bai-viet/co-ganh.html"]],
+ ch:[["Mytour: Chắn (Blog)","https://mytour.vn/vi/blog/bai-viet/bi-quyet-choi-chan-thanh-thao-tu-co-ban.html"],["Pagat: Verwandtes Spiel Quán Duì","https://www.pagat.com/rummy/quan_dui.html"]],
+ tt:[["Wikipedia: Tổ tôm","https://en.wikipedia.org/wiki/T%E1%BB%95_t%C3%B4m"]],
+ bo:[["Heritage Vietnam Airlines: Bài chòi","https://heritagevietnamairlines.com/en/the-art-of-bai-choi/"]],
+ cn:[["MyKingdom: Cờ cá ngựa","https://www.mykingdom.com.vn/en/blogs/hom-nay-con-choi-gi/chia-se-cach-choi-co-ca-ngua-co-ban-cho-nguoi-moi"]],
+ xd:[["Nguh-Wiki: Xì dách","https://mc.nguh.org/wiki/X%C3%AC_d%C3%A1ch"]],
+ no:[["Pagat: Kartenspiele in Vietnam","https://pagat.com/national/vietnam.html"]]
+};
+const STAT={a:"Regeln gut belegt",b:"Eine Quelle oder starke Varianten",c:"Nicht gesichert"};
+const GAMES=[
+ {id:"go",n:"Cờ vây",de:"Go",st:"a",lead:"Dein Brettspiel vermutlich: runde schwarze und weiße Steine auf einem großen Gitter.",tabs:[["Lernen",goRules],["Aufgaben",goPuzzles],["Spielen",goPlay],["Tipps",r=>tipsView(r,GOTIPS)]],src:SRC.go},
+ {id:"chan",n:"Chắn",de:"Paarspiel mit langen Karten",st:"b",lead:"Dein Kartenspiel vermutlich: lange schmale Karten, in Nordvietnam verbreitet. Die Regeln schwanken von Tisch zu Tisch, die Quelle ist ein Blog.",rules:chanRules,play:chanPlay,src:SRC.ch,playName:"Paare finden"},
+ {id:"totom",n:"Tổ tôm",de:"Rommé-artig, 120 lange Karten",st:"b",lead:"Dasselbe lange Blatt wie Chắn, deutlich schwieriger und eher an Festen zu sehen. Die Wikipedia-Quelle markiert selbst unklare Stellen.",rules:ttRules,play:ttPlay,src:SRC.tt,playName:"Kombinationen prüfen"},
+ {id:"coTuong",n:"Cờ tướng",de:"Chinesisches Schach",st:"a",lead:"Das klassische Parkspiel in Hanoi. Runde Scheiben mit Schriftzeichen, meist rot und schwarz.",tabs:[["Lernen",xqRules],["Figuren",xqFig],["Aufgaben",xqPuzzles],["Spielen",xqPlay],["Tipps",r=>tipsView(r,XQTIPS)]],src:SRC.xq},
+ {id:"coGanh",n:"Cờ gánh",de:"Einklemmspiel",st:"b",lead:"Kleines Brett, 16 Steine, die die Farbe wechseln. Mein Regelbeleg ist ein einzelner Blog, die Aufstellung ist teils Annahme.",rules:gaRules,play:gaPlay,src:SRC.ga,playName:"Selbst spielen"},
+ {id:"oAnQuan",n:"Ô ăn quan",de:"Vietnamesisches Mancala",st:"a",lead:"Steine reihum verteilen und fangen. Wertung und Details variieren regional, die Grundregeln sind belegt.",rules:oaqRules,play:oaqPlay,src:SRC.oq,playName:"Selbst spielen"},
+ {id:"tienLen",n:"Tiến lên",de:"Abwerfspiel mit 52 Karten",st:"a",lead:"Das bekannte vietnamesische Kartenspiel mit normalem Blatt. Es gibt Hausregeln, gezeigt wird die Fassung nach Pagat.",rules:tlRules,play:tlPlay,src:SRC.tl,playName:"Gegen drei spielen"},
+ {id:"bauCua",n:"Bầu cua",de:"Würfelspiel zu Tết",st:"a",lead:"Reines Glücksspiel mit drei Bilderwürfeln.",only:bcuaPlay,src:SRC.bc},
+ {id:"catTe",n:"Cắt tê",de:"Stichspiel mit 52 Karten",st:"b",lead:"Nur der letzte Stich zählt. Ich habe nur eine ausführliche Regelseite gefunden, Varianten sind genannt.",rules:ctRules,src:SRC.ct},
+ {id:"xiDach",n:"Xì dách",de:"Vietnamesisches Blackjack",st:"b",lead:"Pagat bestätigt die Verwandtschaft mit Blackjack. Die Details stammen aus einem Community-Wiki, Tische unterscheiden sich.",only:xdPlay,src:SRC.xd},
+ {id:"caNgua",n:"Cờ cá ngựa",de:"Figurenrennen",st:"b",lead:"Laufspiel mit Würfel und Stall. Der Beleg ist ein Spielwarenblog, der das Brett nicht genau beschreibt.",rules:cnRules,src:SRC.cn},
+ {id:"baiChoi",n:"Bài chòi",de:"Volksfest mit Gesang",st:"b",lead:"Spiel mit Sängern und Hütten, in Zentralvietnam zu Tết. Eine Quelle, die sich bei der Fahnenzahl widerspricht.",rules:bcRules,src:SRC.bo},
+ {id:"offen",n:"Tứ sắc, Xập xám",de:"Noch nicht animiert",st:"c",lead:"Zu Tứ sắc (112 Karten, vierfarbig) und Xập xám (Chinese Poker) habe ich die Regeln nicht geprüft. Pagat nennt beide und verlinkt Regelseiten zu verwandten Spielen. Du wolltest nur Gesichertes, deshalb fehlen sie hier.",src:SRC.no}
+];
+function route(){ver++;timers.forEach(clearInterval);timers=[];const id=location.hash.slice(1),g=GAMES.find(x=>x.id==id)||GAMES[0];
+  document.querySelectorAll("#nav a").forEach(a=>a.getAttribute("href")=="#"+g.id?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"));
+  const main=document.getElementById("main");main.replaceChildren();
+  main.append(h("div",{class:"head"},h("h2",{},g.n),h("div",{class:"note"},g.de),h("span",{class:"pill "+g.st},STAT[g.st]),h("p",{style:"max-width:70ch"},g.lead)));
+  const body=h("div",{style:"display:grid;gap:12px;min-width:0"});
+  if(g.only)g.only(body);else if(g.tabs||(g.rules&&g.play)){const tabs=g.tabs||[["Regeln ansehen",g.rules,"regeln"],[g.playName,g.play,"spielen"]];const hold=h("div",{style:"display:grid;gap:12px;min-width:0"});const btns=tabs.map((x,k)=>h("button",{onclick(){set(k)}},x[0]));function set(k){ver++;timers.forEach(clearInterval);timers=[];Store.set("tab:"+g.id,k);btns.forEach((b,n)=>b.classList.toggle("on",n==k));hold.replaceChildren();tabs[k][1](hold)}body.append(h("div",{class:"tabs"},btns),hold);set(Math.min(Store.get("tab:"+g.id,0),tabs.length-1))}else if(g.rules){g.rules(body)}
+  main.append(body);
+  if(g.src)main.append(h("div",{class:"src"},h("b",{},"Quellen"),h("ul",{},g.src.map(([t,u])=>h("li",{},h("a",{href:u,target:"_blank",rel:"noopener"},t))))));
+}
+const nav=document.getElementById("nav");GAMES.forEach(g=>nav.append(h("a",{href:"#"+g.id},h("span",{},g.n,h("small",{},g.de)),h("i",{class:"dot "+g.st,"aria-label":STAT[g.st]}))));
+addEventListener("hashchange",route);route();
+(function(){const b=document.getElementById("vollbild");const set=on=>{document.body.classList.toggle("fokus",on);b.textContent=on?"Fokus beenden":"Fokus";b.setAttribute("aria-pressed",String(on));Store.set("fokus",on);scrollTo(0,0)};b.addEventListener("click",()=>set(!document.body.classList.contains("fokus")));addEventListener("keydown",k=>{if(k.key=="Escape"&&document.body.classList.contains("fokus"))set(false)});set(Store.get("fokus",false))})();
+window.__T={Go,XQ,GA,OQ,TL,XD,TT,CT,ctWinner,GOP,XQP};
+(function(){const b=document.getElementById("echtvoll"),r=document.documentElement,fk=document.getElementById("vollbild");const fs=()=>document.fullscreenElement||document.webkitFullscreenElement;const upd=()=>{b.textContent=fs()?"Vollbild beenden":"Vollbild"};b.addEventListener("click",()=>{if(fs()){(document.exitFullscreen||document.webkitExitFullscreen).call(document);return}if(!document.body.classList.contains("fokus"))fk.click();const f=r.requestFullscreen||r.webkitRequestFullscreen;if(!f){b.textContent="Vollbild hier nicht möglich";return}const p=f.call(r);if(p&&p.catch)p.catch(()=>{b.textContent="Vollbild hier nicht möglich"})});document.addEventListener("fullscreenchange",upd);document.addEventListener("webkitfullscreenchange",upd)})();
+</script>
+
+</body></html>
